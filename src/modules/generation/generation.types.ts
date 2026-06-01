@@ -9,6 +9,8 @@ export interface GenerationInput {
   resumeBuffer?: Buffer;
   resumeFileName?: string;
   portfolioName: string;
+  userId?: string;
+  generationId?: string;
 }
 
 export const PROGRESS_MAP: Record<GenerationStatus, number> = {

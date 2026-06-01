@@ -123,6 +123,7 @@ export function mapToPrismaPayload(
     name: portfolioName,
     status: PortfolioStatus.PUBLISHED,
     githubUsername,
+    user: input.userId ? { connect: { id: input.userId } } : undefined,
 
     fullName: personalInfo.fullName,
     headline: personalInfo.headline,

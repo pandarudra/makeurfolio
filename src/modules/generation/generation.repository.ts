@@ -9,10 +9,12 @@ import type { Prisma, PortfolioGeneration } from "@/app/generated/prisma/client"
 import { GenerationStatus } from "@/app/generated/prisma/client";
 
 export async function createGeneration(
-  githubUsername?: string
+  githubUsername?: string,
+  id?: string
 ): Promise<PortfolioGeneration> {
   return prisma.portfolioGeneration.create({
     data: {
+      id,
       githubUsername,
       status: GenerationStatus.QUEUED,
     },

@@ -11,6 +11,7 @@ export interface PortfolioCreateInput {
   githubSummary?: GithubSummary;
   portfolioName: string;
   githubUsername?: string;
+  userId?: string;
 }
 
 /** Full portfolio with all relations (response DTO) */

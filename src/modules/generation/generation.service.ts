@@ -30,7 +30,7 @@ export async function executeGenerationSynchronously(
   logger.info(SERVICE, "Starting synchronous generation pipeline");
   
   // 1. Create generation record
-  const generation = await createGeneration(input.githubUsername);
+  const generation = await createGeneration(input.githubUsername, input.generationId);
   const genId = generation.id;
 
   try {
@@ -66,6 +66,7 @@ export async function executeGenerationSynchronously(
       githubSummary,
       portfolioName: input.portfolioName,
       githubUsername: input.githubUsername,
+      userId: input.userId,
     });
 
     // 7. Mark Completed

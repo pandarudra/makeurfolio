@@ -4,7 +4,7 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# makeurfolio — Backend Architecture
+# makeurfolio — Backend & Authentication Architecture
 
 ## Overview
 makeurfolio automatically generates recruiter-ready developer portfolio websites from a GitHub profile and/or a Resume (PDF or Word DOCX). 
@@ -13,7 +13,7 @@ The backend handles fetching data from GitHub, parsing text from resumes (PDFs a
 ## Architecture Principles
 1. **Isolated Layers**: Route handlers delegate to services, services orchestrate logic, repositories talk to Prisma, mappers transform data boundaries.
 2. **AI Constraints**: The LLM NEVER generates database entities or Prisma schemas. It strictly outputs a normalized business profile (`NormalizedProfile` schema) validated by Zod.
-3. **No Auth (Yet)**: All endpoints are open and `userId` on portfolios is nullable. Authentication can be slotted in via middleware later.
+3. **Seamless Authentication & State Stashing**: Low-friction account ownership is enabled using Better Auth (Google OAuth & Email OTP). To maximize user conversion, developers can input their GitHub username and upload their resume *before* signing up. Their inputs are automatically stashed in IndexedDB across auth redirects and seamlessly restored upon landing back on the site to trigger generation under their new account.
 4. **Synchronous Execution (MVP)**: Generation runs synchronously in-band during the POST request to avoid background task termination on serverless hosts like Vercel.
 
 ## Core Modules
@@ -28,10 +28,37 @@ Uses `pdf-parse` (for PDFs) and `mammoth` (for DOCX Word documents) to extract p
 Defines the `NormalizedProfile` Zod schema and system prompts. Calls Gemini (`gemini-2.5-flash`) with structured output configuration. Includes retry logic for Zod schema validation failures. Strict anti-hallucination prompts are enforced.
 
 ### 4. `src/modules/portfolio`
-Contains `portfolio.mapper.ts` for translating the AI output + GitHub data into Prisma's nested create structure. Handles slug generation, enum mapping for skills, and project attribution. `portfolio.repository.ts` ensures atomic database writes.
+Contains `portfolio.mapper.ts` for translating the AI output + GitHub data into Prisma's nested create structure. Handles slug generation, enum mapping for skills, and project attribution. `portfolio.repository.ts` ensures atomic database writes. Connects portfolios directly to user accounts via the nullable `userId` relation.
 
 ### 5. `src/modules/generation`
 Orchestrates the entire pipeline. Deduplicates projects via `project-merge.service.ts` between GitHub and Resume inputs. Updates the `PortfolioGeneration` status tracking model during the synchronous run.
+
+---
+
+## Authentication & UX Flow Architecture
+
+makeurfolio implements a premium, high-intent generation UX integrated with robust session management:
+
+### 1. Low-Friction Entry & State Persistence (`src/lib/storage.ts`)
+* Users interact with the landing page inputs immediately without being blocked by an auth screen.
+* When they trigger generation, their current input state (including raw `File` objects for resumes and text inputs) is stashed inside **IndexedDB** (via `idb-keyval`).
+* If the user is unauthenticated, they are presented with a premium authentication overlay (`AuthModal`).
+* After successful authentication (whether via Google OAuth redirect or Email OTP verification), the application mounts, checks for stashed state, restores the stashed file and text fields, and immediately opens the portfolio name prompt (`NamingModal`).
+
+### 2. Next.js App Router Client-Side Auth Strategy
+* During prerendering, Server-Side Rendering (SSR) of hooks like `useSession` from `better-auth/react` can cause React hydration mismatches or prerender crashes (e.g., `useRef` null errors).
+* To resolve this, the client safely queries `authClient.getSession()` inside a mount-triggered `useEffect` callback, avoiding compile-time and runtime failures.
+
+### 3. Real-Time Non-Fake Progress Polling (`src/components/generation-overlay.tsx`)
+* When a portfolio is being generated, the client polls the status route `/api/portfolio/generation/[id]` every 1.5 seconds.
+* To avoid cheesy fake progress indicators, progress updates reflect actual backend status transitions (`QUEUED` -> `FETCHING_GITHUB` -> `PARSING_RESUME` -> `GENERATING_PROFILE` -> `COMPLETED`/`FAILED`).
+* The active generation ID is persisted in `localStorage` so that a browser refresh or unexpected redirect doesn't lose the progress visual; the overlay instantly re-opens on reload to continue polling.
+
+### 4. User Dashboard (`/dashboard`)
+* A secure route that displays the authenticated user's generated portfolios.
+* Queries portfolios associated with the current session's `userId`, listing view counts, creation dates, and providing immediate links to live sites (`/portfolio/[slug]`).
+
+---
 
 ## API Endpoints
 
@@ -92,11 +119,13 @@ All API endpoints return consistent, structured JSON responses. Error responses 
 ---
 
 ### 2. `POST /api/portfolio/generate`
-*Triggers the portfolio generation pipeline by merging GitHub and/or Resume (PDF/DOCX) inputs.*
+*Triggers the portfolio generation pipeline by merging GitHub and/or Resume (PDF/DOCX) inputs. Requires an active user session.*
 
 #### Payload / Parameters
 * **Method**: `POST`
-* **Headers**: `Content-Type: multipart/form-data`
+* **Headers**: 
+  * `Content-Type: multipart/form-data`
+  * Active Better Auth session cookie / headers
 * **Body Fields**:
   * `githubUsername` (string, *optional*): The developer's GitHub username to parse repositories and public profile.
   * `resume` (file, *optional*): A PDF or Word document (.docx) Resume upload to parse text.
@@ -104,15 +133,16 @@ All API endpoints return consistent, structured JSON responses. Error responses 
   * `portfolioName` (string, *required*): The target name of the portfolio (e.g. `Utkal's Dev Space`).
 
 #### What it does
-1. Validates inputs, ensuring either a GitHub username is present or a PDF/DOCX file is attached.
-2. Synchronously executes the full processing pipeline to prevent background serverless functions from getting terminated prematurely on platforms like Vercel:
+1. Authenticates the request via `auth.api.getSession`. Returns `401 Unauthorized` if no valid user session is detected.
+2. Validates inputs, ensuring either a GitHub username is present or a PDF/DOCX file is attached.
+3. Synchronously executes the full processing pipeline to prevent background serverless functions from getting terminated prematurely on platforms like Vercel:
    - Tracks state using `PortfolioGeneration` database records (starting with `QUEUED`).
    - **GitHub Parsing**: Bulk fetches repos, scores them based on activity and quality, and fetches readme + languages only for the top 5 candidates.
    - **Resume Parsing**: Extracts text from PDF files (using `pdf-parse`) or Word document DOCX files (using `mammoth`).
    - **Deduplication**: Merges projects matching similarity thresholds or identical names using `ProjectMergeService`.
    - **AI Extraction**: Converts merged information into a standardized profile schema utilizing Google Gemini `gemini-2.5-flash` with JSON output schemas and validation retry loops.
    - **Mapping**: Translates Gemini schemas into relational models, generating a unique slug for the portfolio.
-   - **Persistence**: Atomic write of the fully structured portfolio (experience, skills, projects, certifications, etc.) to PostgreSQL.
+   - **Persistence**: Atomic write of the fully structured portfolio (experience, skills, projects, certifications, etc.) to PostgreSQL, associated directly with the authenticated `userId`.
 
 #### Returns
 * **Success (`200 OK`)**:
@@ -122,6 +152,17 @@ All API endpoints return consistent, structured JSON responses. Error responses 
     "data": {
       "generationId": "cuid-string-for-tracking",
       "portfolioSlug": "generated-portfolio-slug"
+    }
+  }
+  ```
+* **Unauthorized (`401 Unauthorized`)**:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "UNAUTHORIZED",
+      "message": "You must be logged in to generate a portfolio.",
+      "statusCode": 401
     }
   }
   ```
@@ -171,7 +212,7 @@ All API endpoints return consistent, structured JSON responses. Error responses 
     "data": {
       "generationId": "cuid-string",
       "status": "COMPLETED", // QUEUED | FETCHING_GITHUB | PARSING_RESUME | GENERATING_PROFILE | COMPLETED | FAILED
-      "progress": 100, // Numeric progress value (0, 20, 50, 80, 100)
+      "progress": 100, // Numeric progress value (0, 25, 50, 75, 100)
       "portfolioId": "portfolio-cuid-string", // null if not completed
       "portfolioSlug": "generated-slug", // null if not completed
       "errorMessage": null // string describing failure if status is FAILED
@@ -276,16 +317,83 @@ All API endpoints return consistent, structured JSON responses. Error responses 
   }
   ```
 
+---
+
+### 5. `/api/auth/*`
+*Catch-all endpoints for authentication actions (OAuth redirects, OTP verification, sessions).*
+
+* Managed internally by Better Auth at `app/api/auth/[...all]/route.ts`.
+
+---
 
 ## Logging and Errors
 - `src/lib/logger.ts`: Structured console logger with timing metrics.
 - `src/lib/errors.ts`: Typed error hierarchy (`ValidationError`, `GithubError`, `GeminiError`, etc.). Route handlers map these to correct HTTP status codes.
 
 ## Dependencies
+- `better-auth` for authentication (Google OAuth, Email OTP)
+- `idb-keyval` for client-side state stashing in IndexedDB
 - `zod` for validation
 - `pdf-parse` & `mammoth` for text extraction (PDFs & DOCX files)
 - `@google/genai` for structured generation
 - Prisma ORM with `@prisma/adapter-pg`
 
 ## Configuration
-Requires `DATABASE_URL`, `GITHUB_TOKEN` (for higher rate limits), and `GEMINI_API_KEY`. Validated on startup via `src/lib/env.ts`.
+Requires the following environment variables:
+* `DATABASE_URL` (PostgreSQL connection string)
+* `GITHUB_TOKEN` (for higher rate limits)
+* `GEMINI_API_KEY` (Gemini model orchestration)
+* `BETTER_AUTH_SECRET` (encryption keys for Better Auth)
+* `BETTER_AUTH_URL` (Base URL of application e.g. `http://localhost:3000`)
+* `GOOGLE_CLIENT_ID` (Google OAuth credential)
+* `GOOGLE_CLIENT_SECRET` (Google OAuth credential)
+
+Validated on startup via `src/lib/env.ts`.
+
+---
+
+## Premium Developer Workspace Dashboard & Theme Architecture
+
+A complete redesign of the workspace (`app/dashboard/page.tsx`) transforms it from a generic CRUD/admin layout into an intentional, minimal, calm, modern developer space reminiscent of linear, raycast, and vercel.
+
+### 1. Dashboard UI/UX Architecture
+* **Layout Structure**: 
+  - **Sticky Top Navigation**: Anchors the page header with high-blur visual depth (`bg-background/85 backdrop-blur-md`), incorporating a sleek sun/moon theme selector, active developer identity details (email and avatar with fallback), and sign-out integration.
+  - **Welcome Section**: Personalized welcome text ("Welcome back, {firstName}.") paired with a primary CTA `+ Create Portfolio` to immediately trigger the portfolio generation modal flow client-side.
+  - **Metric Stats Row**: Clean, highly-polished display metrics cards indicating Portfolios count, Total Views, and Published statuses.
+  - **Search & Filter Bar**: Context-aware real-time search interface above the grid matching by Name or Slug client-side.
+  - **Portfolio Grid**: High-fidelity product cards dynamically featuring subdomain rendering (e.g. `slug.makeurfolio.dev` in mono), visual view counters, creation timestamps, and active state pill indicators. Hovering introduces micro-lifts and fine shadows for premium interaction.
+  - **Empty State**: Graphic card layout prompting action when no portfolios are present in the account database.
+* **Responsive Behavior**: Flexible column wrapping (1 column on mobile, 2 columns on tablet, 3 columns on desktop) using modern responsive layout properties and padding alignment.
+
+### 2. Theme Architecture & Persistence
+* **CSS Variable Design System**: Centralized color definitions inside `app/globals.css`:
+  - **Light mode values**: Background `#FAFAFA`, Cards `#FFFFFF`, Borders `#EAEAEA`, Primary text `#111111`, Secondary text `#666666`.
+  - **Dark mode values**: Background `#0D0E12`, Cards `#151821`, Borders `#232734`, Primary text `#FFFFFF`, Secondary text `#9CA3AF`.
+* **Theme Persistence Strategy**:
+  - Uses `localStorage.theme` to persist user choices across sessions and page refreshes.
+  - Applies or removes the `.dark` class directly on the root `document.documentElement` to trigger CSS color tokens instantly, preventing flash-of-unstyled-content (FOUC).
+  - Elegant mini theme button with quick SVG icon transitions (Sun/Moon).
+
+### 3. Session & Authentication Flow
+* **Better Auth Sign-Out**: Handled client-side using `authClient.signOut()` from `@/src/lib/auth-client`. Clears the session safely and handles redirecting to the landing page `/` via Next.js router.
+* **Modal Overlay Pipeline Integration**:
+  - The `+ Create Portfolio` CTA dynamically launches `NamingModal` directly inside the dashboard.
+  - Aborted overlay triggers clean IndexedDB stashing wipes (`clearStashedState()`) to avoid state corruption or infinite auth redirect loops.
+
+### 4. Client-side Search & Stats Computation
+* **Interactive Filtering**: Client-side filtering executes instantly on user keystroke inputs:
+  ```ts
+  const filteredPortfolios = portfolios.filter(p => {
+    const query = searchQuery.toLowerCase().trim();
+    return p.name.toLowerCase().includes(query) || p.slug.toLowerCase().includes(query);
+  });
+  ```
+* **Dynamic Analytics**: Real-time stats row calculations occur automatically based on fetched data list mapping:
+  - **Portfolios**: `portfolios.length`
+  - **Total Views**: `portfolios.reduce((sum, p) => sum + (p._count?.portfolioViews || 0), 0)`
+  - **Published Count**: Count of active items mapped dynamically through status codes.
+
+### 5. Future Extension Points
+* **Settings & Analytics Actions**: Redesigned card details include design-ready disabled placeholder links (`Settings`, `Analytics`) to support seamless integration in future releases.
+* **Multi-Domain Custom Mapping**: The monospace link formatting is isolated, preparing the way for custom domain configurations (e.g. `domain.com` map hooks).

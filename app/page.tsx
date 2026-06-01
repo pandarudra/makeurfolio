@@ -1,6 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { AuthModal } from "@/src/components/auth-modal";
+import { NamingModal } from "@/src/components/naming-modal";
+import { GenerationOverlay } from "@/src/components/generation-overlay";
+import { stashGenerationState, restoreStashedState, clearStashedState, setActiveGenerationId, getActiveGenerationId, clearActiveGenerationId, setActiveGenerationMetadata, clearActiveGenerationMetadata } from "@/src/lib/storage";
+import { authClient } from "@/src/lib/auth-client";
 
 // Mock profiles data for custom generation
 const MOCK_PROFILES: Record<string, {
@@ -85,28 +90,61 @@ const MOCK_PROFILES: Record<string, {
 };
 
 export default function Home() {
+  const [session, setSession] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
+  
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [githubUser, setGithubUser] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationStep, setGenerationStep] = useState(0);
   const [activeShowcase, setActiveShowcase] = useState(0);
-  const [logs, setLogs] = useState<string[]>([]);
   
-  const [renderedProfile, setRenderedProfile] = useState(MOCK_PROFILES.default);
+  // Real Generation States
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isNamingModalOpen, setIsNamingModalOpen] = useState(false);
+  const [generationId, setGenerationId] = useState<string | null>(null);
+
+  const isGenerating = generationId !== null;
+  const generationStep = 0;
+  const logs: string[] = [];
+
+  const [renderedProfile] = useState(MOCK_PROFILES.default);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
 
-  // Initialize theme from HTML class list (set by anti-flash script)
+  // Initialize theme and check for restored state
   useEffect(() => {
+    setMounted(true);
+    
+    // Fetch session manually to avoid SSR hook issues with better-auth client
+    authClient.getSession().then(res => {
+      setSession(res.data);
+    });
+
     if (typeof window !== "undefined") {
       const isDark = document.documentElement.classList.contains("dark");
       requestAnimationFrame(() => {
         setTheme(isDark ? "dark" : "light");
       });
+
+      // Check if we have an active generation overlay
+      const activeGenId = getActiveGenerationId();
+      if (activeGenId) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setGenerationId(activeGenId);
+        return; // Don't try to pop naming modal if we are already generating
+      }
+
+      // Check if we came back from OAuth
+      restoreStashedState().then(stashed => {
+        if (stashed && session?.user) {
+          setGithubUser(stashed.githubUsername);
+          if (stashed.resumeFile) setResumeFile(stashed.resumeFile);
+          setIsNamingModalOpen(true); // Pop the next step
+        }
+      });
     }
-  }, []);
+  }, [session?.user]);
 
   const toggleTheme = () => {
     const nextTheme = theme === "light" ? "dark" : "light";
@@ -148,67 +186,111 @@ export default function Home() {
     }
   };
 
-  // Run simulation
-  const handleGenerate = (e: React.FormEvent) => {
+  const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Auto fill defaults if fields empty
-    const typedUser = githubUser.trim() || "alexander-griffin";
+    const typedUser = githubUser.trim();
+    if (!typedUser && !resumeFile) return;
+
+    // Stash state regardless
+    await stashGenerationState({ githubUsername: typedUser, resumeFile: resumeFile || undefined });
+
+    if (!session?.user) {
+      setIsAuthModalOpen(true);
+    } else {
+      setIsNamingModalOpen(true);
+    }
+  };
+
+  const executeRealGeneration = async (portfolioName: string) => {
+    setIsNamingModalOpen(false);
     
-    setIsGenerating(true);
-    setGenerationStep(1);
-    setLogs([]);
+    // 1. Read state from current vars or stashed state first
+    const stashed = await restoreStashedState();
+    const finalGithubUser = stashed?.githubUsername || githubUser.trim();
+    const finalResumeFile = stashed?.resumeFile || resumeFile;
 
-    // Scroll to demo section smoothly
-    setTimeout(() => {
-      demoSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 150);
+    // 2. Set the active metadata in localStorage first so it's ready before overlay mounts
+    setActiveGenerationMetadata(!!finalGithubUser, !!finalResumeFile);
 
-    const logSequence = [
-      { text: "⏳ Initializing intelligent data normalization pipeline...", delay: 200 },
-      { text: `📥 Fetching GitHub profile details for '${typedUser}'...`, delay: 700 },
-      { text: "⚡ Ingesting resume PDF and running structured layout parsing...", delay: 1300 },
-      { text: "🧠 Merging credentials: mapping 4 local projects with commit frequencies...", delay: 1900 },
-      { text: "✨ LLM Enrichment: converting raw README fragments into recruiter-optimized narratives...", delay: 2500 },
-      { text: "🚀 Bundling static assets & deploying to edge subdomain router...", delay: 3100 },
-      { text: `✔ Done. Portfolio live at ${typedUser.toLowerCase()}.makeurfolio.com`, delay: 3600 }
-    ];
+    // 3. Pre-generate a unique generation ID on the client side
+    const clientGenId = "gen-" + Date.now() + "-" + Math.random().toString(36).substring(2, 9);
+    
+    // 4. Immediately open overlay and save it in state/localStorage so polling starts instantly
+    setGenerationId(clientGenId);
+    setActiveGenerationId(clientGenId);
 
-    logSequence.forEach((step, index) => {
-      setTimeout(() => {
-        setLogs(prev => [...prev, step.text]);
-        setGenerationStep(index + 1);
+    const formData = new FormData();
+    if (finalGithubUser) formData.append("githubUsername", finalGithubUser);
+    if (finalResumeFile) formData.append("resume", finalResumeFile);
+    formData.append("portfolioName", portfolioName);
+    formData.append("generationId", clientGenId);
 
-        if (index === 3) {
-          // Halfway through, set rendered data to custom typed user if provided
-          if (githubUser.trim()) {
-            const formattedName = typedUser
-              .split(/[-_]/)
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ");
-            setRenderedProfile({
-              ...MOCK_PROFILES.custom,
-              name: formattedName,
-              projects: MOCK_PROFILES.custom.projects.map(proj => ({
-                ...proj,
-                link: `github.com/${typedUser}/${proj.title}`
-              }))
-            });
-          } else {
-            setRenderedProfile(MOCK_PROFILES.default);
-          }
-        }
+    // Clear stashed state early so we don't trigger duplicate calls on refresh
+    await clearStashedState();
 
-        if (index === logSequence.length - 1) {
-          setIsGenerating(false);
-        }
-      }, step.delay);
-    });
+    try {
+      const res = await fetch("/api/portfolio/generate", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        alert(data.error?.message || "Failed to start generation");
+        // Clear overlay on failure
+        setGenerationId(null);
+        clearActiveGenerationId();
+        clearActiveGenerationMetadata();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error starting generation");
+      // Clear overlay on error
+      setGenerationId(null);
+      clearActiveGenerationId();
+      clearActiveGenerationMetadata();
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col selection:bg-accent/15 selection:text-accent dark:selection:bg-accent/20 dark:selection:text-accent">
       
+      {mounted && (
+        <>
+          <AuthModal 
+            isOpen={isAuthModalOpen} 
+            onClose={() => {
+              setIsAuthModalOpen(false);
+              clearStashedState();
+            }} 
+            onSuccess={() => {
+              setIsAuthModalOpen(false);
+              setIsNamingModalOpen(true);
+            }} 
+          />
+          
+          <NamingModal 
+            isOpen={isNamingModalOpen} 
+            onClose={() => {
+              setIsNamingModalOpen(false);
+              clearStashedState();
+            }} 
+            onSubmit={executeRealGeneration} 
+            defaultName={githubUser ? `${githubUser}'s Portfolio` : "My Portfolio"}
+          />
+          
+          <GenerationOverlay 
+            generationId={generationId} 
+            onClose={() => {
+              setGenerationId(null);
+              clearActiveGenerationId();
+              clearActiveGenerationMetadata();
+            }} 
+          />
+        </>
+      )}
+
       {/* Dynamic light structural grid line overlay */}
       <div className="absolute inset-0 pointer-events-none architectural-bg opacity-[0.8] z-0" />
 
@@ -250,14 +332,30 @@ export default function Home() {
               )}
             </button>
 
-            <span className="hidden sm:inline text-[13px] text-secondary hover:text-foreground cursor-pointer transition-colors duration-200">Login</span>
-            
-            <a 
-              href="#generate"
-              className="text-[12px] font-medium border border-foreground bg-foreground text-background py-1.5 px-3 rounded-[4px] hover:bg-foreground/90 transition-all duration-200"
-            >
-              Generate Portfolio
-            </a>
+            {session?.user ? (
+              <a 
+                href="/dashboard"
+                className="text-[12px] font-medium border border-foreground bg-foreground text-background py-1.5 px-3 rounded-[4px] hover:bg-foreground/90 transition-all duration-200"
+              >
+                Dashboard
+              </a>
+            ) : (
+              <>
+                <span 
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="hidden sm:inline text-[13px] text-secondary hover:text-foreground cursor-pointer transition-colors duration-200"
+                >
+                  Login
+                </span>
+                
+                <a 
+                  href="#generate"
+                  className="text-[12px] font-medium border border-foreground bg-foreground text-background py-1.5 px-3 rounded-[4px] hover:bg-foreground/90 transition-all duration-200"
+                >
+                  Generate Portfolio
+                </a>
+              </>
+            )}
           </div>
         </div>
       </nav>

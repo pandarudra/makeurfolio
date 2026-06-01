@@ -3,10 +3,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FAFAF8;
+  --background: #FAFAFA;
   --foreground: #111111;
   --secondary: #666666;
-  --border: #E6E6E1;
+  --border: #EAEAEA;
   --accent: #3F51B5;
   --card-bg: #FFFFFF;
   --input-bg: #F3F3F0;
@@ -16,12 +16,12 @@
 }
 
 .dark {
-  --background: #0B0D10;
+  --background: #0D0E12;
   --foreground: #FFFFFF;
-  --secondary: #8E9C9F;
-  --border: #1B1E24;
+  --secondary: #9CA3AF;
+  --border: #232734;
   --accent: #38BDF8;
-  --card-bg: #13171C;
+  --card-bg: #151821;
   --input-bg: #181C22;
   --grid-line: rgba(255, 255, 255, 0.02);
 }

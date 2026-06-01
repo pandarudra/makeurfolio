@@ -12,7 +12,11 @@
     "@google/genai": "^2.7.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "better-auth": "^1.6.13",
     "dotenv": "^17.4.2",
+    "idb-keyval": "^6.2.4",
+    "kysely": "0.28.5",
+    "lucide-react": "^1.17.0",
     "mammoth": "^1.12.0",
     "next": "16.2.7",
     "pdf-parse": "1.1.1",
@@ -34,5 +38,10 @@
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "kysely": "0.28.5"
+    }
   }
 }
