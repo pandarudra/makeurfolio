@@ -28,12 +28,23 @@ export interface PortfolioWithRelations {
   phone: string | null;
   location: string | null;
   avatarUrl: string | null;
-  linkedinUrl: string | null;
-  githubUrl: string | null;
-  twitterUrl: string | null;
-  websiteUrl: string | null;
+  resumeUrl: string | null;
+  themeId: string | null;
+  showExperience: boolean;
+  showEducation: boolean;
+  showCertifications: boolean;
+  showAchievements: boolean;
+  showResume: boolean;
   summary: string | null;
   profileScore: number | null;
+  socialLinks: Array<{
+    id: string;
+    label: string;
+    url: string;
+    icon: string | null;
+    visible: boolean;
+    sortOrder: number;
+  }>;
   experiences: Array<{
     id: string;
     company: string;

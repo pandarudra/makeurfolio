@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useEditor } from "./editor-context";
-import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical, Eye, EyeOff } from "lucide-react";
 
 export function EducationSection() {
   const { portfolio, updateField } = useEditor();
@@ -50,7 +50,24 @@ export function EducationSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between pb-2 border-b border-border/40">
+        <p className="text-sm text-secondary">Manage your educational background.</p>
+        <button
+          onClick={() => updateField("showEducation", !portfolio.showEducation)}
+          className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+            portfolio.showEducation 
+              ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" 
+              : "bg-input-bg text-secondary hover:bg-border/60"
+          }`}
+        >
+          {portfolio.showEducation ? (
+            <><Eye className="w-3.5 h-3.5" /> Visible</>
+          ) : (
+            <><EyeOff className="w-3.5 h-3.5" /> Hidden</>
+          )}
+        </button>
+      </div>
       {educations.map((edu: any) => {
         const isEditing = editingId === edu.id;
         

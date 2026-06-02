@@ -420,5 +420,24 @@ A premium, Notion/Linear-inspired editor interface (`app/dashboard/portfolio/[id
 * **Unsaved Warnings**: A `beforeunload` event listener prevents users from accidentally closing the tab if `hasUnsavedChanges` is true.
 
 ### 3. Security & Database Syncing
-* **Protected Routes**: Both `GET /api/portfolio/[id]/editor` and `PATCH /api/portfolio/[id]` enforce strict ownership. They verify that the requested portfolio's `userId` matches the authenticated `session.user.id`. Unauthorized access returns a `403 Forbidden`.
-* **Nested Writes**: The `PATCH` route handles relational updates (Experiences, Projects, Educations, Skills, Certifications, Achievements) by executing atomic `deleteMany` followed by `create` operations, ensuring the database stays perfectly synced with the client's working array state.
+* **Protected Routes**: Both `GET /api/editor/portfolio/[id]` and `PATCH /api/editor/portfolio/[id]` enforce strict ownership. They verify that the requested portfolio's `userId` matches the authenticated `session.user.id`. Unauthorized access returns a `403 Forbidden`.
+* **Nested Writes**: The `PATCH` route handles relational updates (Experiences, Projects, Educations, Skills, Certifications, Achievements, SocialLinks) by executing atomic `deleteMany` followed by `create` operations, ensuring the database stays perfectly synced with the client's working array state.
+
+---
+
+## Theme & Public Portfolio Architecture
+
+makeurfolio provides structured, recruiter-ready public portfolios accessed via `app/portfolio/[slug]/page.tsx`. 
+
+### 1. The "Minimal Editorial" Theme
+* **Design Philosophy**: Rejects generic vertically-stacked generator layouts (Hero -> Skills -> Projects -> Contact). Instead, it uses a high-end, editorial layout: `Name/Intro -> Projects (as Hero) -> About -> Experience -> Everything Else`.
+* **Typography**: Leverages `Manrope` for headings to provide a modern, structural feel, paired with `Inter` for highly readable body copy.
+* **Component Styling**: Clean, subtle borders, high contrast spacing, and no massive gradients. Background is forced to `#FCFCFC` (light mode) to maintain the editorial print-like aesthetic.
+* **Visibility Controls**: Users have fine-grained control over what sections to render using `showExperience`, `showEducation`, etc. If a section is toggled off or has no data, it collapses gracefully without rendering empty states.
+
+### 2. Dynamic Social Links Pipeline
+* **Old vs New**: Replaced legacy static columns (`githubUrl`, `linkedinUrl`, etc.) with a dynamic, scalable `SocialLink` table.
+* **AI Extraction**: `src/modules/ai/prompts.ts` aggressively scans both Resume and GitHub data to discover URLs (LinkedIn, Twitter, Telegram, Blogs, etc.).
+* **Backend Normalization**: `src/lib/social-utils.ts` parses raw URLs from Gemini and normalizes them, automatically mapping known domains to correct `label`s (e.g., "X (Twitter)", "Medium") and Lucide `icon` identifiers without hallucination risk from the LLM.
+* **Editor Integration**: Users manage an unlimited array of social links in the editor with drag-and-drop sorting and visibility toggling.
+* **Resume URL**: Added explicit `resumeUrl` field combined with a `showResume` toggle to seamlessly display a direct PDF link alongside social badges on the public portfolio.

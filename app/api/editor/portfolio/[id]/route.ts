@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -29,7 +28,6 @@ export async function GET(
         { status: 400 }
       );
     }
-
     const portfolio = await prisma.portfolio.findUnique({
       where: { id: resolvedParams.id },
       include: {
@@ -39,16 +37,15 @@ export async function GET(
         projects: { orderBy: { featuredOrder: 'asc' } },
         certifications: { orderBy: { issueDate: 'desc' } },
         achievements: { orderBy: { achievedAt: 'desc' } },
+        socialLinks: { orderBy: { sortOrder: 'asc' } },
       }
     });
-
     if (!portfolio) {
       return NextResponse.json(
         { success: false, error: { code: "NOT_FOUND", message: "Portfolio not found", statusCode: 404 } },
         { status: 404 }
       );
     }
-
     // Ownership verification
     if (portfolio.userId !== session.user.id) {
       return NextResponse.json(
@@ -69,7 +66,6 @@ export async function GET(
     );
   }
 }
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -94,29 +90,24 @@ export async function PATCH(
         { status: 400 }
       );
     }
-
     // First check ownership
     const existingPortfolio = await prisma.portfolio.findUnique({
       where: { id: resolvedParams.id },
       select: { userId: true }
     });
-
     if (!existingPortfolio) {
       return NextResponse.json(
         { success: false, error: { code: "NOT_FOUND", message: "Portfolio not found", statusCode: 404 } },
         { status: 404 }
       );
     }
-
     if (existingPortfolio.userId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: { code: "FORBIDDEN", message: "You do not have permission to edit this portfolio", statusCode: 403 } },
         { status: 403 }
       );
     }
-
     const body = await request.json();
-
     const {
       experiences,
       educations,
@@ -124,9 +115,9 @@ export async function PATCH(
       projects,
       certifications,
       achievements,
+      socialLinks,
       ...baseFields
     } = body;
-
     const updatedPortfolio = await prisma.portfolio.update({
       where: { id: resolvedParams.id },
       data: {
@@ -191,6 +182,16 @@ export async function PATCH(
             achievedAt: a.achievedAt ? new Date(a.achievedAt) : null,
           }))
         } : undefined,
+        socialLinks: socialLinks ? {
+          deleteMany: {},
+          create: socialLinks.map((sl: any, index: number) => ({
+            label: sl.label,
+            url: sl.url,
+            icon: sl.icon,
+            visible: sl.visible !== undefined ? sl.visible : true,
+            sortOrder: index,
+          }))
+        } : undefined,
       },
       include: {
         skills: true,
@@ -199,6 +200,7 @@ export async function PATCH(
         projects: { orderBy: { featuredOrder: 'asc' } },
         certifications: { orderBy: { issueDate: 'desc' } },
         achievements: { orderBy: { achievedAt: 'desc' } },
+        socialLinks: { orderBy: { sortOrder: 'asc' } },
       }
     });
     

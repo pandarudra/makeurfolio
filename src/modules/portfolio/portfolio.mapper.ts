@@ -10,6 +10,7 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { DataSource, PortfolioStatus, SkillCategory } from "@/app/generated/prisma/client";
 import type { PortfolioCreateInput } from "./portfolio.types";
 import type { GithubRepoScored } from "@/src/modules/github/github.types";
+import { normalizeSocialLink } from "@/src/lib/social-utils";
 
 /**
  * Generate a URL-friendly slug from a string.
@@ -132,10 +133,13 @@ export function mapToPrismaPayload(
     phone: personalInfo.phone,
     location: personalInfo.location ?? githubSummary?.user.location,
     avatarUrl: personalInfo.avatarUrl ?? githubSummary?.user.avatarUrl,
-    linkedinUrl: personalInfo.linkedinUrl,
-    githubUrl: personalInfo.githubUrl ?? (githubUsername ? `https://github.com/${githubUsername}` : null),
-    twitterUrl: personalInfo.twitterUrl ?? (githubSummary?.user.twitterUsername ? `https://twitter.com/${githubSummary.user.twitterUsername}` : null),
-    websiteUrl: personalInfo.websiteUrl ?? githubSummary?.user.blog,
+    resumeUrl: null,
+    showResume: true,
+    showExperience: true,
+    showEducation: true,
+    showCertifications: true,
+    showAchievements: true,
+    themeId: "minimal-editorial",
     summary: profile.summary,
 
     profileScore: null, // Can be calculated later
@@ -176,6 +180,19 @@ export function mapToPrismaPayload(
         category: mapSkillCategory(s.category),
         sources: [DataSource.AI],
       })),
+    },
+
+    socialLinks: {
+      create: (profile.socialLinks ?? []).map((link, i) => {
+        const normalized = normalizeSocialLink(link.url);
+        return {
+          label: normalized.label,
+          url: normalized.url,
+          icon: normalized.icon,
+          sortOrder: i,
+          visible: true,
+        };
+      }),
     },
 
     projects: {

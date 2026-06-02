@@ -27,7 +27,9 @@ CRITICAL RULES:
 
 DATA PRIORITY:
 - PREFER RESUME for: fullName, email, phone, education, work experience, certifications
-- PREFER GITHUB for: projects, technical skills, bio enrichment, avatarUrl, githubUrl
+- PREFER GITHUB for: projects, technical skills, avatarUrl
+- BIO GENERATION: Always generate a detailed personal bio. If both GitHub and Resume data are provided, the bio MUST be primarily generated from the RESUME's professional experience and background, only enriched slightly by GitHub.
+- SOCIAL LINKS: Aggressively hunt for and extract ANY professional, personal, or public URLs from both the Resume and GitHub profile (including READMEs). This includes GitHub, LinkedIn, Twitter/X, Telegram, YouTube, Medium, Dev.to, Hashnode, Discord, or Personal Blogs. Output only the raw URL string. Normalization will happen on the backend.
 - If both sources mention the same project, merge them into one entry. Do NOT duplicate.
 
 SKILL CATEGORIZATION:
@@ -58,11 +60,7 @@ OUTPUT FORMAT:
     "email": string | null,
     "phone": string | null,
     "location": string | null,
-    "avatarUrl": string | null,
-    "linkedinUrl": string | null,
-    "githubUrl": string | null,
-    "twitterUrl": string | null,
-    "websiteUrl": string | null
+    "avatarUrl": string | null
   },
   "summary": string,
   "experience": [
@@ -116,6 +114,9 @@ OUTPUT FORMAT:
       "description": string | null,
       "achievedAt": string | null
     }
+  ],
+  "socialLinks": [
+    { "url": string }
   ]
 }`;
 

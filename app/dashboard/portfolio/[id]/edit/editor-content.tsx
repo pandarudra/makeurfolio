@@ -14,6 +14,7 @@ import { EducationSection } from "@/src/components/editor/education-section";
 import { ProjectsSection } from "@/src/components/editor/projects-section";
 import { CertificationsSection } from "@/src/components/editor/certifications-section";
 import { AchievementsSection } from "@/src/components/editor/achievements-section";
+import { ThemeSelector } from "@/src/components/editor/theme-selector";
 
 export function EditorContent() {
   const { 
@@ -131,10 +132,14 @@ export function EditorContent() {
         </div>
       </header>
 
-      <div className="flex gap-12">
-        <EditorSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <div className="flex flex-col lg:flex-row gap-12">
+        {/* Sidebar (Left) */}
+        <div className="w-full lg:w-48 shrink-0">
+          <EditorSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+        </div>
         
-        <main className="flex-1 space-y-24">
+       {/* Main Content (Center) */}
+        <main className="flex-1 space-y-24 max-w-3xl">
           <div id="section-profile" className="scroll-mt-28 min-h-[50vh]">
             <h2 className="text-xl font-semibold mb-6">Profile</h2>
             <ProfileSection />
@@ -180,6 +185,15 @@ export function EditorContent() {
             <SEOSection />
           </div>
         </main>
+
+        {/* Themes Panel (Right) */}
+        <div className="w-full lg:w-64 shrink-0">
+          <div className="sticky top-32">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-secondary mb-4">Themes</h2>
+            {/* The ThemeSelector component will go here */}
+            <ThemeSelector />
+          </div>
+        </div>
       </div>
     </div>
   );

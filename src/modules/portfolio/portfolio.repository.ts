@@ -24,6 +24,7 @@ export async function createPortfolioWithRelations(
       },
       certifications: { orderBy: { issueDate: 'desc' } },
       achievements: { orderBy: { achievedAt: 'desc' } },
+      socialLinks: { orderBy: { sortOrder: 'asc' } },
     },
   });
 }
@@ -43,6 +44,7 @@ export async function findPortfolioBySlug(
       },
       certifications: { orderBy: { issueDate: 'desc' } },
       achievements: { orderBy: { achievedAt: 'desc' } },
+      socialLinks: { orderBy: { sortOrder: 'asc' } },
     },
   });
 }

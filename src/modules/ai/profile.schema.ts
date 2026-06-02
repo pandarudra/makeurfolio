@@ -15,10 +15,10 @@ export const PersonalInfoSchema = z.object({
   phone: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   avatarUrl: z.string().nullable().optional(),
-  linkedinUrl: z.string().nullable().optional(),
-  githubUrl: z.string().nullable().optional(),
-  twitterUrl: z.string().nullable().optional(),
-  websiteUrl: z.string().nullable().optional(),
+});
+
+export const SocialLinkSchema = z.object({
+  url: z.string(),
 });
 
 export const ExperienceSchema = z.object({
@@ -89,6 +89,7 @@ export const NormalizedProfileSchema = z.object({
   projects: z.array(ProjectSchema),
   certifications: z.array(CertificationSchema),
   achievements: z.array(AchievementSchema),
+  socialLinks: z.array(SocialLinkSchema),
 });
 
 export type NormalizedProfile = z.infer<typeof NormalizedProfileSchema>;

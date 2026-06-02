@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
@@ -27,7 +28,8 @@ export function EditorProvider({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const hasUnsavedChanges = initialData && formData ? JSON.stringify(initialData) !== JSON.stringify(formData) : false;
 
   // Fetch portfolio data
   useEffect(() => {
@@ -43,7 +45,7 @@ export function EditorProvider({
         } else {
           setError(result.error?.message || "Failed to load portfolio");
         }
-      } catch (err) {
+      } catch {
         setError("An unexpected error occurred");
       } finally {
         setIsLoading(false);
@@ -55,13 +57,6 @@ export function EditorProvider({
     }
   }, [portfolioId]);
 
-  // Check for unsaved changes whenever formData changes
-  useEffect(() => {
-    if (initialData && formData) {
-      const isChanged = JSON.stringify(initialData) !== JSON.stringify(formData);
-      setHasUnsavedChanges(isChanged);
-    }
-  }, [initialData, formData]);
 
   // Handle beforeunload to warn user of unsaved changes
   useEffect(() => {
@@ -101,11 +96,10 @@ export function EditorProvider({
       if (result.success) {
         setInitialData(result.data);
         setFormData(result.data); // Update form data to match exactly what backend returned
-        setHasUnsavedChanges(false);
       } else {
         setError(result.error?.message || "Failed to save changes");
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred while saving");
     } finally {
       setIsSaving(false);

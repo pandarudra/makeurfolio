@@ -159,10 +159,15 @@ model Portfolio {
 
   avatarUrl String?
 
-  linkedinUrl String?
-  githubUrl   String?
-  twitterUrl  String?
-  websiteUrl  String?
+  resumeUrl String?
+
+  themeId String? @default("minimal-editorial")
+
+  showExperience     Boolean @default(true)
+  showEducation      Boolean @default(true)
+  showCertifications Boolean @default(true)
+  showAchievements   Boolean @default(true)
+  showResume         Boolean @default(true)
 
   summary String? @db.Text
 
@@ -180,6 +185,7 @@ model Portfolio {
   certifications  Certification[]
   achievements    Achievement[]
   portfolioViews  PortfolioView[]
+  socialLinks     SocialLink[]
 
   generations PortfolioGeneration[]
 
@@ -367,5 +373,25 @@ model PortfolioView {
   @@index([portfolioId, viewedAt])
 
   @@map("portfolio_views")
+}
+
+model SocialLink {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  label String
+  url   String
+
+  icon String?
+
+  visible Boolean @default(true)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@map("social_links")
 }
 
