@@ -116,7 +116,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
 
-  // Initialize theme and check for restored state
+  // Initialize theme and fetch session
   useEffect(() => {
     setMounted(true);
     
@@ -136,18 +136,24 @@ export default function Home() {
       if (activeGenId) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setGenerationId(activeGenId);
-        return; // Don't try to pop naming modal if we are already generating
       }
-
-      // Check if we came back from OAuth
-      restoreStashedState().then(stashed => {
-        if (stashed && session?.user) {
-          setGithubUser(stashed.githubUsername);
-          if (stashed.resumeFile) setResumeFile(stashed.resumeFile);
-          setIsNamingModalOpen(true); // Pop the next step
-        }
-      });
     }
+  }, []);
+
+  // Check for restored OAuth state once session is available
+  useEffect(() => {
+    if (typeof window === "undefined" || !session?.user) return;
+    
+    // Don't try to pop naming modal if we are already generating
+    if (getActiveGenerationId()) return;
+
+    restoreStashedState().then(stashed => {
+      if (stashed) {
+        setGithubUser(stashed.githubUsername);
+        if (stashed.resumeFile) setResumeFile(stashed.resumeFile);
+        setIsNamingModalOpen(true); // Pop the next step
+      }
+    });
   }, [session?.user]);
 
   const toggleTheme = () => {
