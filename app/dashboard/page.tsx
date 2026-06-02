@@ -15,7 +15,6 @@ import {
   Eye, 
   Calendar, 
   Check,
-  Sparkles,
   LayoutTemplate,
   Globe,
   Settings,
@@ -40,6 +39,7 @@ import {
 import { AuthModal } from "@/src/components/auth-modal";
 import { CreatePortfolioModal } from "@/src/components/create-portfolio-modal";
 import { GenerationOverlay } from "@/src/components/generation-overlay";
+import { BrandLogo } from "@/src/components/brand-logo";
 
 interface Portfolio {
   id: string;
@@ -355,10 +355,7 @@ export default function DashboardPage() {
       <nav className="sticky top-0 z-40 w-full bg-background/85 backdrop-blur-md border-b border-border transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => router.push("/")}>
-            <div className="w-5 h-5 bg-foreground rounded flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-background fill-current" />
-            </div>
-            <span className="text-sm font-semibold tracking-tight">makeurfolio</span>
+            <BrandLogo />
           </div>
 
           <div className="flex items-center gap-6">

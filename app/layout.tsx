@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "makeurfolio — Elevate Your Developer Story",
-  description: "An automated, zero-friction portfolio generation platform for software engineers. Convert your resume and GitHub profile into a beautiful, recruiter-optimized personal website in under 30 seconds.",
+  description: "An automated, zero-friction portfolio generation platform for software engineers. Convert your resume and GitHub profile into a beautiful, recruiter-optimized personal website in 1 click.",
 };
 
 export default function RootLayout({

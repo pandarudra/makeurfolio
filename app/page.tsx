@@ -1,11 +1,12 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuthModal } from "@/src/components/auth-modal";
 import { NamingModal } from "@/src/components/naming-modal";
 import { GenerationOverlay } from "@/src/components/generation-overlay";
+import { BrandLogo } from "@/src/components/brand-logo";
 import { stashGenerationState, restoreStashedState, clearStashedState, setActiveGenerationId, getActiveGenerationId, clearActiveGenerationId, setActiveGenerationMetadata, clearActiveGenerationMetadata } from "@/src/lib/storage";
 import { authClient } from "@/src/lib/auth-client";
 
@@ -118,25 +119,25 @@ export default function Home() {
 
   // Initialize theme and fetch session
   useEffect(() => {
-    setMounted(true);
-    
     // Fetch session manually to avoid SSR hook issues with better-auth client
     authClient.getSession().then(res => {
       setSession(res.data);
     });
 
     if (typeof window !== "undefined") {
-      const isDark = document.documentElement.classList.contains("dark");
-      requestAnimationFrame(() => {
+      const frame = requestAnimationFrame(() => {
+        setMounted(true);
+        const isDark = document.documentElement.classList.contains("dark");
         setTheme(isDark ? "dark" : "light");
+
+        // Check if we have an active generation overlay
+        const activeGenId = getActiveGenerationId();
+        if (activeGenId) {
+          setGenerationId(activeGenId);
+        }
       });
 
-      // Check if we have an active generation overlay
-      const activeGenId = getActiveGenerationId();
-      if (activeGenId) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setGenerationId(activeGenId);
-      }
+      return () => cancelAnimationFrame(frame);
     }
   }, []);
 
@@ -320,12 +321,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           
           {/* Logo */}
-          <div className="flex items-center gap-2.5 font-medium tracking-tight">
-            <div className="relative w-5 h-5 flex items-center justify-center border border-foreground rounded-[3px] bg-background overflow-hidden">
-              <div className="absolute inset-[3px] bg-foreground rounded-[1px] rotate-45 transform transition-transform duration-500 hover:rotate-90" />
-            </div>
-            <span className="text-[14px] text-foreground tracking-tight font-medium">makeurfolio</span>
-          </div>
+          <BrandLogo wordmarkClassName="text-[14px] font-medium" />
 
           {/* Links */}
           <div className="hidden md:flex items-center gap-8 text-[13px] text-secondary font-normal">
@@ -397,14 +393,14 @@ export default function Home() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-[32px] sm:text-[44px] md:text-[52px] leading-[1.1] text-foreground tracking-tight font-normal max-w-2xl mb-6">
-            Your GitHub already tells a story. <br/>
-            <span className="text-secondary">Your portfolio should too.</span>
+          <h1 className="max-w-5xl text-[32px] sm:text-[44px] md:text-[52px] leading-[1.1] text-foreground tracking-tight font-normal mb-6">
+            <span className="block md:whitespace-nowrap">Your GitHub already tells a story.</span>
+            <span className="block text-secondary">Your portfolio should too.</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-[15px] sm:text-[17px] leading-relaxed text-secondary max-w-xl mb-12">
-            Upload your resume. Connect your GitHub. We&apos;ll generate a highly structured, recruiter-optimized portfolio in 30 seconds. No manual updates, no code required.
+            Upload your resume. Connect your GitHub. We&apos;ll generate a highly structured, recruiter-optimized portfolio in 1 click. No manual updates, no code required.
           </p>
 
           {/* Premium Command Center Container */}
@@ -496,7 +492,7 @@ export default function Home() {
               <svg className="w-3 h-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
               </svg>
-              30 second setup
+              1 click setup
             </span>
             <span className="flex items-center gap-1.5">
               <svg className="w-3 h-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -594,84 +590,129 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Handcrafted Portfolio Frame */}
-              <div className="space-y-8 animate-fade-in">
-                
-                {/* Header */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-border/60 pb-6 gap-4">
-                  <div>
-                    <h2 className="text-[20px] font-normal tracking-tight text-foreground">{renderedProfile.name}</h2>
-                    <p className="text-[12px] text-secondary mt-0.5">{renderedProfile.role} • {renderedProfile.location}</p>
+              {/* Live Portfolio Website Preview */}
+              <div className="font-heading animate-fade-in overflow-hidden rounded-xl border border-border bg-background shadow-[0_18px_70px_rgba(17,17,17,0.08)] dark:shadow-none">
+                <div className="relative flex h-9 items-center justify-center border-b border-border bg-input-bg/40 px-3">
+                  <div className="absolute left-3 flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" />
                   </div>
-                  <span className="text-[10px] border border-border px-2 py-0.5 rounded text-secondary font-mono tracking-tight bg-input-bg/20">
+                  <div className="hidden w-[300px] max-w-[56%] truncate rounded-md border border-border bg-card-bg px-3 py-1 text-center text-[10px] font-mono text-secondary sm:block">
                     {renderedProfile.name.toLowerCase().replace(/\s+/g, '')}.makeurfolio.com
-                  </span>
-                </div>
-
-                {/* Profile Bio */}
-                <p className="text-[13.5px] leading-relaxed text-secondary">
-                  {renderedProfile.bio}
-                </p>
-
-                {/* Case Studies (Ingested Repos) */}
-                <div className="space-y-6">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-secondary">Selected Work</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderedProfile.projects.map((proj, i) => (
-                      <div key={i} className="p-4 rounded-lg border border-border/80 bg-input-bg/10 hover:border-border hover:bg-input-bg/20 transition-all duration-200">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[13px] font-medium text-foreground font-mono">{proj.title}</span>
-                          <span className="text-[10px] text-secondary hover:text-accent cursor-pointer flex items-center gap-0.5">
-                            Code ↗
-                          </span>
-                        </div>
-                        <p className="text-[12px] leading-relaxed text-secondary mb-3">
-                          {proj.desc}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {proj.tags.map((tag, tIdx) => (
-                            <span key={tIdx} className="text-[9px] bg-input-bg text-secondary px-1.5 py-0.5 rounded font-mono">{tag}</span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
 
-                {/* Experience Timeline */}
-                <div className="space-y-4">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-secondary">Experience</h3>
-                  <div className="space-y-3.5">
-                    {renderedProfile.experience.map((exp, i) => (
-                      <div key={i} className="flex justify-between items-start text-[12.5px]">
-                        <div className="max-w-md">
-                          <div className="font-medium text-foreground">{exp.role} <span className="text-secondary font-normal">at {exp.company}</span></div>
-                          <div className="text-[11.5px] text-secondary mt-0.5">{exp.desc}</div>
-                        </div>
-                        <span className="text-[10.5px] font-mono text-secondary/80 flex-shrink-0">{exp.period}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Dynamic Skills */}
-                <div className="space-y-3">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-secondary">Tech Stack</h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {renderedProfile.skills.map((skill, idx) => (
-                      <span key={idx} className="text-[10px] border border-border/80 px-2 py-0.5 rounded-full text-secondary font-mono bg-input-bg/10 hover:border-accent/30 hover:text-accent transition-colors duration-150 cursor-default">
-                        {skill}
+                <div className="bg-card-bg">
+                  <div className="flex items-center justify-between border-b border-border/70 px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-[11px] font-semibold text-background shadow-sm">
+                        {renderedProfile.name.split(" ").map((part) => part[0]).join("")}
                       </span>
-                    ))}
+                      <div>
+                        <div className="text-[13px] font-bold leading-none tracking-tight text-foreground">{renderedProfile.name}</div>
+                        <div className="mt-1 text-[10px] font-normal text-secondary">{renderedProfile.location}</div>
+                      </div>
+                    </div>
+                    <div className="hidden items-center gap-5 text-[11px] font-medium text-secondary md:flex">
+                      <span>Work</span>
+                      <span>Stack</span>
+                      <span>Contact</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr]">
+                    <div className="border-b border-border/70 px-5 py-6 md:border-b-0 md:border-r">
+                      <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-input-bg/40 px-2.5 py-1 text-[10px] font-medium text-secondary">
+                        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                        Available for senior infrastructure roles
+                      </div>
+                      <h2 className="max-w-[430px] text-[25px] font-bold leading-[1.08] tracking-tight text-foreground sm:text-[30px]">
+                        Systems engineer building reliable infrastructure.
+                      </h2>
+                      <p className="mt-4 max-w-[420px] font-sans text-[12.5px] leading-relaxed text-secondary">
+                        {renderedProfile.bio}
+                      </p>
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {renderedProfile.skills.slice(0, 5).map((skill) => (
+                          <span key={skill} className="rounded-full border border-border bg-background px-2.5 py-1 text-[10px] font-mono text-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-input-bg/25 px-5 py-6">
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          ["14ms", "TTFB"],
+                          ["250k", "Writes"],
+                          ["5", "Top repos"],
+                        ].map(([value, label]) => (
+                          <div
+                            key={label}
+                            className="flex h-[64px] min-w-0 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card-bg px-2 py-2.5 text-center shadow-[0_1px_0_rgba(17,17,17,0.03)]"
+                          >
+                            <div className="text-[17px] font-bold leading-none tracking-tight text-foreground">{value}</div>
+                            <div className="max-w-full truncate whitespace-nowrap font-sans text-[7.5px] font-bold uppercase tracking-[0.09em] text-secondary">
+                              {label}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-5 space-y-3">
+                        <div className="text-[9.5px] font-bold uppercase tracking-[0.18em] text-secondary">Current Role</div>
+                        <div className="rounded-lg border border-border bg-card-bg p-3.5 shadow-[0_1px_0_rgba(17,17,17,0.03)]">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="truncate text-[13px] font-bold tracking-tight text-foreground">{renderedProfile.experience[0]?.role}</div>
+                              <div className="mt-1 text-[11px] font-sans text-secondary">{renderedProfile.experience[0]?.company}</div>
+                            </div>
+                            <span className="shrink-0 whitespace-nowrap font-mono text-[9.5px] text-secondary">{renderedProfile.experience[0]?.period}</span>
+                          </div>
+                          <p className="mt-3 font-sans text-[11.25px] leading-relaxed text-secondary">
+                            {renderedProfile.experience[0]?.desc}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border/70 px-5 py-5">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="text-[9.5px] font-bold uppercase tracking-[0.18em] text-secondary">Featured Work</h3>
+                      <span className="text-[10px] font-semibold text-accent">View all projects</span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {renderedProfile.projects.map((proj, i) => (
+                        <div key={proj.title} className="group rounded-lg border border-border bg-background p-3.5 transition-colors duration-200 hover:border-accent/35">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="font-mono text-[12.5px] font-medium text-foreground">{proj.title}</div>
+                            <span className="shrink-0 text-[10px] font-medium text-secondary transition-colors group-hover:text-accent">
+                              {i === 0 ? "Case study" : "GitHub"} ↗
+                            </span>
+                          </div>
+                          <p className="mt-2.5 line-clamp-2 font-sans text-[11.25px] leading-relaxed text-secondary">
+                            {proj.desc}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {proj.tags.map((tag) => (
+                              <span key={tag} className="rounded bg-input-bg px-1.5 py-0.5 font-mono text-[9px] text-secondary">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 border-t border-border/70 px-5 py-3.5 font-sans text-[11px] text-secondary sm:flex-row sm:items-center sm:justify-between">
+                    <span>Generated from GitHub + resume signals</span>
+                    <span className="font-medium text-foreground">Open live portfolio →</span>
                   </div>
                 </div>
-
-              </div>
-              
-              <div className="mt-8 pt-4 border-t border-border/60 flex items-center justify-between text-[11px] text-secondary">
-                <span>Updated 30s ago via automated Edge sync</span>
-                <span className="text-accent font-medium hover:underline cursor-pointer">Download Verified Resume (PDF) →</span>
               </div>
 
             </div>
@@ -973,14 +1014,14 @@ export default function Home() {
 
             <div className="mt-8 pt-4 border-t border-border/40 flex items-center justify-between text-[11px] text-secondary">
               <span>Layout styles fully customizable via client dash</span>
-              <span className="text-accent hover:underline cursor-pointer">View Elena&apos;s Live Portfolio ↗</span>
+              {/* <span className="text-accent hover:underline cursor-pointer">View Elena&apos;s Live Portfolio ↗</span> */}
             </div>
           </div>
 
         </section>
 
         {/* PRICING SECTION (Discrete & Simple) */}
-        <section id="pricing" className="py-24 px-6 border-t border-border bg-card-bg/20 transition-colors duration-300">
+        {/* <section id="pricing" className="py-24 px-6 border-t border-border bg-card-bg/20 transition-colors duration-300">
           <div className="max-w-4xl mx-auto">
             
             <div className="text-center max-w-xl mx-auto mb-16">
@@ -991,8 +1032,7 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-2xl mx-auto">
-              
-              {/* Free Tier */}
+       
               <div className="bg-card-bg border border-border rounded-xl p-6 flex flex-col justify-between shadow-sm">
                 <div>
                   <h3 className="text-[14px] font-semibold text-foreground mb-1">Standard</h3>
@@ -1023,7 +1063,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Pro Tier */}
               <div className="bg-card-bg border border-accent/20 rounded-xl p-6 flex flex-col justify-between shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 rounded-full blur-xl pointer-events-none" />
                 <div>
@@ -1061,7 +1100,7 @@ export default function Home() {
 
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* FINAL CTA (Exceptionally Minimal) */}
         <section className="py-32 px-6 max-w-4xl mx-auto text-center flex flex-col items-center">
@@ -1109,4 +1148,3 @@ export default function Home() {
     </div>
   );
 }
-
