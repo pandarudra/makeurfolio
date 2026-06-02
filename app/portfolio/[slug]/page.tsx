@@ -1,8 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/src/lib/prisma";
-import { getSocialIconComponent } from "@/src/lib/social-utils";
-import { ExternalLink, MapPin, Mail, Calendar, FileText, Code2 as GithubIcon, ChevronDown } from "lucide-react";
+import { ExternalLink, MapPin, Mail, FileText, Code2 as GithubIcon } from "lucide-react";
 import React from "react";
 import Link from "next/link";
 
@@ -189,24 +188,18 @@ export default async function PortfolioPage({ params }: PortfolioPageProps) {
                         <h3 className="text-3xl font-heading font-extrabold text-[#111111] tracking-tight">
                           {project.title}
                         </h3>
-                        {project.aiSummary && (
+                        {(project.aiSummary || project.description) && (
                           <p className="text-lg font-medium text-[#666666] leading-snug">
-                            {project.aiSummary}
+                            {project.aiSummary || project.description}
                           </p>
                         )}
                       </div>
                       
-                      {project.description && (
-                        <p className="text-[#666666] leading-relaxed text-[15px]">
-                          {project.description}
-                        </p>
-                      )}
-                      
                       {Array.isArray(project.techStack) && project.techStack.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-2">
-                          {project.techStack.map((tech: any, i: number) => (
+                          {project.techStack.map((tech: unknown, i: number) => (
                             <span key={i} className="px-3 py-1.5 bg-gray-50 text-[#666666] text-xs font-semibold rounded-lg">
-                              {tech}
+                              {String(tech)}
                             </span>
                           ))}
                         </div>
@@ -261,9 +254,9 @@ export default async function PortfolioPage({ params }: PortfolioPageProps) {
                     
                     {Array.isArray(project.techStack) && project.techStack.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-auto">
-                        {project.techStack.map((tech: any, i: number) => (
+                        {project.techStack.map((tech: unknown, i: number) => (
                           <span key={i} className="px-2.5 py-1 bg-gray-50 border border-gray-100 text-[#666666] text-xs font-medium rounded-md">
-                            {tech}
+                            {String(tech)}
                           </span>
                         ))}
                       </div>

@@ -31,7 +31,11 @@ export function GenerationOverlay({ generationId, onClose }: GenerationOverlayPr
 
   useEffect(() => {
     if (generationId) {
-      setMetadata(getActiveGenerationMetadata());
+      const frame = requestAnimationFrame(() => {
+        setMetadata(getActiveGenerationMetadata());
+      });
+
+      return () => cancelAnimationFrame(frame);
     }
   }, [generationId]);
 
@@ -134,7 +138,7 @@ export function GenerationOverlay({ generationId, onClose }: GenerationOverlayPr
             </div>
             <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-2">Something went wrong</h2>
             <p className="text-[14px] text-secondary mb-6 leading-relaxed">
-              We couldn't complete portfolio generation.
+              We couldn&apos;t complete portfolio generation.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
@@ -181,7 +185,7 @@ export function GenerationOverlay({ generationId, onClose }: GenerationOverlayPr
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => router.push(`/portfolio/${portfolioSlug}`)}
+                onClick={() => window.open(`/portfolio/${portfolioSlug}`, "_blank", "noopener,noreferrer")}
                 className="flex items-center justify-center gap-2 py-3 px-6 bg-foreground text-background hover:bg-foreground/90 rounded-xl text-[14px] font-medium transition-all active:scale-[0.98] shadow-sm"
               >
                 View Portfolio
@@ -205,7 +209,7 @@ export function GenerationOverlay({ generationId, onClose }: GenerationOverlayPr
             <div className="text-center mb-10">
               <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-2">Creating your portfolio</h2>
               <p className="text-[14px] text-secondary leading-relaxed max-w-[340px] mx-auto">
-                We're transforming your experience, projects, and resume into a recruiter-ready website.
+                We&apos;re transforming your experience, projects, and resume into a recruiter-ready website.
               </p>
             </div>
 
