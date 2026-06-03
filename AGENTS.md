@@ -430,11 +430,80 @@ A premium, Notion/Linear-inspired editor interface (`app/dashboard/portfolio/[id
 
 ---
 
-## Theme & Public Portfolio Architecture
+## Theme System & Multi-Theme Architecture
 
-makeurfolio provides structured, recruiter-ready public portfolios accessed via `app/portfolio/[slug]/page.tsx`. 
+makeurfolio uses a registry-based multi-theme architecture that fully separates content from presentation, similar to how CMS systems (Webflow, Shopify, Ghost) work.
 
-### 1. The "Minimal Editorial" Theme
+### Architecture Overview
+
+```
+src/themes/
+├── registry.ts              # Maps themeId → React component
+├── theme-manifest.ts        # Theme metadata (name, description, previewImage)
+│
+├── minimal-editorial/
+│   └── index.tsx            # Theme #1 implementation
+│
+└── shared/
+    ├── types.ts             # FullPortfolio type, PortfolioThemeProps contract
+    └── utils.ts             # Shared helpers (skill grouping, date formatting, etc.)
+```
+
+### Data Flow (Strict)
+
+```
+Route (page.tsx) → Fetch Portfolio (Prisma) → Resolve Theme (registry) → Render Theme
+```
+
+**Themes are pure presentation components.** They must NEVER:
+- Import Prisma or any database client
+- Call `fetch()` or access any API
+- Access browser storage (`localStorage`, `sessionStorage`, IndexedDB)
+- Perform any data fetching or side effects
+
+All themes receive an identical, fully-hydrated `FullPortfolio` object through `PortfolioThemeProps`.
+
+### Route Resolution (`app/portfolio/[slug]/page.tsx`)
+
+The portfolio page is extremely thin. It only:
+1. Fetches the portfolio from Prisma (including all relations)
+2. Generates SEO metadata
+3. Resolves the theme: `portfolio.themeId → themeRegistry[themeId]`
+4. Falls back to `DEFAULT_THEME_ID` ("minimal-editorial") if `themeId` is null or invalid
+5. Renders `<ThemeComponent portfolio={portfolio} />`
+
+Zero UI markup lives in `page.tsx`.
+
+### Theme Registry (`src/themes/registry.ts`)
+
+Single source of truth for theme resolution. Maps `themeId` strings to React component implementations. No switch statements elsewhere in the codebase.
+
+### Theme Manifest (`src/themes/theme-manifest.ts`)
+
+Metadata consumed by the editor's theme selector gallery. Contains `id`, `name`, `description`, and `previewImage` for each theme.
+
+### Shared Utilities (`src/themes/shared/utils.ts`)
+
+Centralized helpers to avoid duplication across themes:
+- `groupSkillsByCategory(skills)` — groups skills into `Record<string, Skill[]>`
+- `formatDateRange(start, end, currentlyWorking)` — e.g. `"2023 — Present"`
+- `splitProjects(projects)` — returns `{ featured, regular }`
+- `getPrimarySocials(links, count)` — returns the top N visible social links
+- `getTopTechString(skills, count)` — comma-separated top tech names
+
+### Adding a New Theme
+
+1. Create theme folder: `src/themes/<theme-id>/`
+2. Implement a default-exported component accepting `PortfolioThemeProps`
+3. Add metadata entry to `src/themes/theme-manifest.ts`
+4. Register the component in `src/themes/registry.ts`
+5. Done.
+
+**No route changes. No database changes. No editor changes.**
+
+See `CONTRIBUTING.md` for full details.
+
+### 1. The "Minimal Editorial" Theme (`src/themes/minimal-editorial/`)
 * **Design Philosophy**: Rejects generic vertically-stacked generator layouts (Hero -> Skills -> Projects -> Contact). Instead, it uses a high-end, editorial layout: `Name/Intro -> About -> Featured Work -> Skills -> Experience -> Everything Else`.
 * **Typography**: Leverages `Manrope` for structural headings to provide a modern feel, paired with `Inter` for highly readable body copy (`text-lg` with `leading-relaxed` in the biography).
 * **Container System**: Strictly enforces a `max-w-[1100px]` width across the page to ensure reading comfort and premium spacing on ultra-wide monitors.
@@ -444,9 +513,19 @@ makeurfolio provides structured, recruiter-ready public portfolios accessed via 
   - **Projects** are split into "Featured Case Studies" (large, dominant layout) and "Regular Projects" (2-column grid) based on the `featured` flag.
 * **Visibility Controls**: Users have fine-grained control over what sections to render using `showExperience`, `showEducation`, etc. If a section is toggled off or has no data, it collapses gracefully. Every section is wrapped in an independent `<section>` container to ensure layout rhythm remains stable regardless of missing data.
 
-### 2. Dynamic Social Links Pipeline
+### 2. The "Founder OS" Theme (`src/themes/founder-os/`)
+* **Design Philosophy**: A modern founder / indie hacker / startup operator portfolio focused on products, impact, and credibility. Replaces traditional resume elements with impact-driven stats and large product cards. Inspired by Stripe Press, Linear, and Vercel.
+* **Layout Structure**: `Hero (w/ Stats) -> Featured Projects -> About -> Experience -> Skills -> Education/Certifications/Achievements -> Footer`.
+* **Key Components**:
+  - **Asymmetric Hero**: Large profile on the left, dynamic quantitative impact stats on the right (Projects, Skills, Experience counts).
+  - **Premium Project Cards**: The focal point of the theme. Large cards combining tech stacks, descriptions, and call-to-actions, resembling startup landing pages.
+  - **Compact Layouts**: Experience uses a clean 2-column timeline. Skills are grouped into clean categorised cards with count badges instead of massive tag clouds.
+* **Visibility Controls**: Designed to never leave orphaned grids or massive whitespace if sections are disabled.
+
+### 3. Dynamic Social Links Pipeline
 * **Old vs New**: Replaced legacy static columns (`githubUrl`, `linkedinUrl`, etc.) with a dynamic, scalable `SocialLink` table.
 * **AI Extraction**: `src/modules/ai/prompts.ts` aggressively scans both Resume and GitHub data to discover URLs (LinkedIn, Twitter, Telegram, Blogs, etc.).
 * **Backend Normalization**: `src/lib/social-utils.ts` parses raw URLs from Gemini and normalizes them, automatically mapping known domains to correct `label`s (e.g., "X (Twitter)", "Medium") and Lucide `icon` identifiers without hallucination risk from the LLM.
 * **Editor Integration**: Users manage an unlimited array of social links in the editor with drag-and-drop sorting and visibility toggling.
 * **Resume URL**: Added explicit `resumeUrl` field combined with a `showResume` toggle to seamlessly display a direct PDF link alongside social badges on the public portfolio.
+

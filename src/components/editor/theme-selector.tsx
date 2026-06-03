@@ -2,21 +2,15 @@
 import React from "react";
 import { useEditor } from "./editor-context";
 import { CheckCircle2 } from "lucide-react";
-const THEMES = [
-  {
-    id: "minimal-editorial",
-    name: "Minimal Editorial",
-    description: "Clean, elegant, and highly readable typography.",
-    thumbnail: "bg-input-bg border border-border/60" // we'll just style a fake thumbnail for now
-  }
-];
+import { themes } from "@/src/themes/theme-manifest";
+
 export function ThemeSelector() {
   const { portfolio, updateField } = useEditor();
   if (!portfolio) return null;
   const currentThemeId = portfolio.themeId || "minimal-editorial";
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-4">
-      {THEMES.map((theme) => {
+      {themes.map((theme) => {
         const isSelected = currentThemeId === theme.id;
         
         return (
@@ -30,7 +24,7 @@ export function ThemeSelector() {
             }`}
           >
             {/* Thumbnail Mockup */}
-            <div className={`w-full aspect-video rounded-lg ${theme.thumbnail} relative overflow-hidden flex flex-col p-3 gap-2 opacity-80 group-hover:opacity-100 transition-opacity`}>
+            <div className={`w-full aspect-video rounded-lg bg-input-bg border border-border/60 relative overflow-hidden flex flex-col p-3 gap-2 opacity-80 group-hover:opacity-100 transition-opacity`}>
               {/* Fake UI lines */}
               <div className="w-1/2 h-2 bg-foreground/20 rounded-full" />
               <div className="w-3/4 h-6 bg-foreground/10 rounded-sm mt-2" />
@@ -52,9 +46,11 @@ export function ThemeSelector() {
           </button>
         );
       })}
-      <div className="pt-4 text-center col-span-full">
-        <span className="text-xs text-secondary/40 font-medium">More themes coming soon...</span>
-      </div>
+      {themes.length <= 1 && (
+        <div className="pt-4 text-center col-span-full">
+          <span className="text-xs text-secondary/40 font-medium">More themes coming soon...</span>
+        </div>
+      )}
     </div>
   );
 }
