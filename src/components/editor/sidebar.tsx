@@ -32,8 +32,8 @@ export function EditorSidebar({ activeSection, setActiveSection }: SidebarProps)
   ];
 
   return (
-    <aside className="w-64 flex-shrink-0 hidden md:block">
-      <div className="sticky top-24 space-y-1 pr-6">
+    <aside className="w-full">
+      <div className="space-y-1">
         {sections.map((section) => (
           <button
             key={section.id}

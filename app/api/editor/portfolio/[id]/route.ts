@@ -130,9 +130,10 @@ export async function PATCH(
         templateId,
         skills: skills ? {
           deleteMany: {},
-          create: skills.map((s: any) => ({ 
+          create: skills.map((s: any, index: number) => ({ 
             name: s.name, 
-            category: s.category || "OTHER" 
+            category: s.category || "OTHER",
+            sortOrder: index
           }))
         } : undefined,
         experiences: experiences ? {
@@ -157,6 +158,7 @@ export async function PATCH(
             liveUrl: p.liveUrl,
             featured: p.featured || false,
             featuredOrder: index,
+            sortOrder: index,
           }))
         } : undefined,
         educations: educations ? {
@@ -173,19 +175,21 @@ export async function PATCH(
         } : undefined,
         certifications: certifications ? {
           deleteMany: {},
-          create: certifications.map((c: any) => ({
+          create: certifications.map((c: any, index: number) => ({
             title: c.title,
             issuer: c.issuer,
             issueDate: c.issueDate ? new Date(c.issueDate) : null,
             credentialUrl: c.credentialUrl,
+            sortOrder: index,
           }))
         } : undefined,
         achievements: achievements ? {
           deleteMany: {},
-          create: achievements.map((a: any) => ({
+          create: achievements.map((a: any, index: number) => ({
             title: a.title,
             description: a.description,
             achievedAt: a.achievedAt ? new Date(a.achievedAt) : null,
+            sortOrder: index,
           }))
         } : undefined,
         socialLinks: socialLinks ? {

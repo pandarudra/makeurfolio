@@ -17,13 +17,13 @@ export async function createPortfolioWithRelations(
     include: {
       experiences: { orderBy: { sortOrder: 'asc' } },
       educations: { orderBy: { sortOrder: 'asc' } },
-      skills: true,
+      skills: { orderBy: { sortOrder: 'asc' } },
       projects: {
         include: { githubMetadata: true },
-        orderBy: [{ featured: 'desc' }, { featuredOrder: 'asc' }],
+        orderBy: [{ featured: 'desc' }, { sortOrder: 'asc' }],
       },
-      certifications: { orderBy: { issueDate: 'desc' } },
-      achievements: { orderBy: { achievedAt: 'desc' } },
+      certifications: { orderBy: { sortOrder: 'asc' } },
+      achievements: { orderBy: { sortOrder: 'asc' } },
       socialLinks: { orderBy: { sortOrder: 'asc' } },
     },
   });
@@ -37,13 +37,13 @@ export async function findPortfolioBySlug(
     include: {
       experiences: { orderBy: { sortOrder: 'asc' } },
       educations: { orderBy: { sortOrder: 'asc' } },
-      skills: true,
+      skills: { orderBy: { sortOrder: 'asc' } },
       projects: {
         include: { githubMetadata: true },
-        orderBy: [{ featured: 'desc' }, { featuredOrder: 'asc' }],
+        orderBy: [{ featured: 'desc' }, { sortOrder: 'asc' }],
       },
-      certifications: { orderBy: { issueDate: 'desc' } },
-      achievements: { orderBy: { achievedAt: 'desc' } },
+      certifications: { orderBy: { sortOrder: 'asc' } },
+      achievements: { orderBy: { sortOrder: 'asc' } },
       socialLinks: { orderBy: { sortOrder: 'asc' } },
     },
   });

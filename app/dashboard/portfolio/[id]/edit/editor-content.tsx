@@ -18,6 +18,7 @@ import { AchievementsSection } from "@/src/components/editor/achievements-sectio
 import { ThemeSelector } from "@/src/components/editor/theme-selector";
 import { TemplateSelector } from "@/src/components/editor/template-selector";
 import { LivePreviewIframe } from "@/src/components/editor/live-preview-iframe";
+import { getPortfolioUrl } from "@/src/lib/portfolio-url";
 
 export function EditorContent() {
   const { 
@@ -73,24 +74,30 @@ export function EditorContent() {
       const container = document.getElementById("editor-scroll-container");
       if (!container) return;
 
+      let currentSection = sections[0];
+      const containerRect = container.getBoundingClientRect();
+      
       for (const section of sections) {
         const element = document.getElementById(`section-${section}`);
         if (element) {
           const rect = element.getBoundingClientRect();
-          // Adjust offset as needed based on container position
-          if (rect.top >= 0 && rect.top <= 300) {
-            setActiveSection(section);
-            break;
+          // Calculate distance from the top of the scrollable container
+          const relativeTop = rect.top - containerRect.top;
+          
+          // If the section is near or above the top of the container
+          if (relativeTop <= 150) {
+            currentSection = section;
           }
         }
       }
+      setActiveSection(currentSection);
     };
     const container = document.getElementById("editor-scroll-container");
     if (container) {
-      container.addEventListener("scroll", handleScroll);
+      container.addEventListener("scroll", handleScroll, { passive: true });
       return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, [viewMode]);
+  }, [viewMode, isLoading]);
 
   if (isLoading) {
     return (
@@ -149,7 +156,7 @@ export function EditorContent() {
             </button>
             
             <Link 
-              href={`/portfolio/${portfolio.slug}`}
+              href={getPortfolioUrl(portfolio.slug)}
               target="_blank"
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-secondary hover:text-foreground hover:bg-border/40 rounded-md transition-colors"
               title="Open Live Site"
@@ -203,10 +210,10 @@ export function EditorContent() {
       {/* Main Area: Conditional Rendering based on viewMode */}
       {viewMode === "form" ? (
         <div id="editor-scroll-container" className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="max-w-7xl mx-auto p-4 sm:p-8 flex flex-col lg:flex-row gap-12">
+          <div className="max-w-7xl mx-auto p-4 sm:p-8 flex flex-col lg:flex-row gap-12 lg:gap-16 xl:gap-20 justify-between">
             
             {/* Sidebar Navigation */}
-            <div className="w-full lg:w-48 shrink-0 order-2 lg:order-1">
+            <div className="w-full lg:w-64 shrink-0 order-2 lg:order-1">
               <div className="sticky top-8">
                 <EditorSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
               </div>
@@ -254,10 +261,10 @@ export function EditorContent() {
             {/* Appearance Panel */}
             <div className="w-full lg:w-64 shrink-0 order-1 lg:order-3 mb-8 lg:mb-0">
               <div className="sticky top-8">
-                <div className="flex gap-1 p-1 rounded-xl mb-6 w-fit" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="flex gap-1 p-1 rounded-xl mb-6 w-full bg-border/40 border border-border/50 shadow-sm">
                     <button
                         onClick={() => setRightTab("theme")}
-                        className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                         rightTab === "theme"
                             ? "bg-foreground text-background shadow-sm"
                             : "text-secondary hover:text-foreground"
@@ -267,7 +274,7 @@ export function EditorContent() {
                     </button>
                     <button
                         onClick={() => setRightTab("template")}
-                        className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                         rightTab === "template"
                             ? "bg-foreground text-background shadow-sm"
                             : "text-secondary hover:text-foreground"

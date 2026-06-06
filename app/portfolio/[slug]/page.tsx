@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/src/lib/prisma";
+import { themeRegistry, DEFAULT_THEME_ID } from "@/src/themes/registry";
+import { getPortfolioUrl } from "@/src/lib/portfolio-url";
 import { LivePortfolioRenderer } from "@/src/components/portfolio/live-portfolio-renderer";
 
 interface PortfolioPageProps {
@@ -37,9 +39,22 @@ export async function generateMetadata({ params }: PortfolioPageProps): Promise<
   if (!portfolio) {
     return { title: "Portfolio Not Found" };
   }
+  const title = portfolio.metaTitle || `${portfolio.fullName || portfolio.name} — Portfolio`;
+  const description = portfolio.metaDescription || portfolio.headline || portfolio.summary || "Developer Portfolio";
+  const url = getPortfolioUrl(resolvedParams.slug);
+
   return {
-    title: portfolio.metaTitle || `${portfolio.fullName || portfolio.name} — Portfolio`,
-    description: portfolio.metaDescription || portfolio.headline || portfolio.summary || "Developer Portfolio",
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+    },
   };
 }
 

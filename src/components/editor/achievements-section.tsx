@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import { useEditor } from "./editor-context";
 import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import { EditorSwitch } from "./editor-switch";
+import { SortableList } from "./sortable-list";
+import { SortableItem } from "./sortable-item";
+import { CSS } from "@dnd-kit/utilities";
 
 export function AchievementsSection() {
   const { portfolio, updateField } = useEditor();
@@ -20,6 +23,7 @@ export function AchievementsSection() {
       title: "",
       description: "",
       achievedAt: null,
+      sortOrder: achievements.length,
     };
     updateField("achievements", [...achievements, newItem]);
     setEditingId(newId);
@@ -63,73 +67,99 @@ export function AchievementsSection() {
           />
         </div>
       </div>
-      {achievements.map((ach: any) => {
-        const isEditing = editingId === ach.id;
-        
-        return (
-          <div key={ach.id} className="bg-input-bg border border-border/40 rounded-xl overflow-hidden transition-all">
-            <div 
-              className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-border/20 transition-colors"
-              onClick={() => toggleEdit(ach.id)}
-            >
-              <div className="flex items-center gap-4">
-                <GripVertical className="w-5 h-5 text-secondary/40 cursor-grab active:cursor-grabbing" />
-                <div>
-                  <h3 className="font-medium text-foreground">{ach.title || "Achievement Title"}</h3>
-                  <p className="text-sm text-secondary line-clamp-1 max-w-md">{ach.description || "No description provided."}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleDelete(ach.id); }}
-                  className="p-1.5 text-secondary/50 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+      <SortableList 
+        items={achievements} 
+        onDragEnd={(newItems) => {
+          const updatedWithOrder = newItems.map((item, index) => ({...item, sortOrder: index}));
+          updateField("achievements", updatedWithOrder);
+        }}
+      >
+        {achievements.map((ach: any) => {
+          const isEditing = editingId === ach.id;
+          
+          return (
+            <SortableItem key={ach.id} id={ach.id}>
+              {({ attributes, listeners, setNodeRef, transform, transition, isDragging }) => (
+                <div 
+                  ref={setNodeRef}
+                  style={{ 
+                    transform: CSS.Translate.toString(transform), 
+                    transition,
+                    zIndex: isDragging ? 50 : 1,
+                  }}
+                  className={`bg-input-bg border rounded-xl overflow-hidden transition-all ${
+                    isDragging ? 'opacity-50 border-foreground/50 shadow-lg' : 'border-border/40'
+                  }`}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                <div className="text-secondary/50 p-1.5">
-                  {isEditing ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </div>
-              </div>
-            </div>
+                  <div 
+                    className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-border/20 transition-colors"
+                    onClick={() => toggleEdit(ach.id)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div {...attributes} {...listeners} onClick={(e) => e.stopPropagation()} className="p-1 -ml-1 text-secondary/40 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors">
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-foreground">{ach.title || "Achievement Title"}</h3>
+                        <p className="text-sm text-secondary line-clamp-1 max-w-md">
+                          {ach.description || "No description provided"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(ach.id); }}
+                        className="p-1.5 text-secondary/50 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="text-secondary/50 p-1.5">
+                        {isEditing ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                      </div>
+                    </div>
+                  </div>
 
-            {isEditing && (
-              <div className="px-6 py-5 border-t border-border/40 bg-background/50 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground">Title</label>
-                  <input
-                    type="text"
-                    value={ach.title || ""}
-                    onChange={(e) => handleUpdate(ach.id, "title", e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
-                    placeholder="e.g. Hackathon Winner"
-                  />
+                  {isEditing && (
+                    <div className="px-6 py-5 border-t border-border/40 bg-background/50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-medium text-foreground">Achievement Title</label>
+                        <input
+                          type="text"
+                          value={ach.title || ""}
+                          onChange={(e) => handleUpdate(ach.id, "title", e.target.value)}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
+                          placeholder="e.g. Employee of the Year"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-medium text-foreground">Date Achieved</label>
+                        <input
+                          type="date"
+                          value={ach.achievedAt ? new Date(ach.achievedAt).toISOString().split('T')[0] : ""}
+                          onChange={(e) => handleUpdate(ach.id, "achievedAt", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-medium text-foreground">Description</label>
+                        <textarea
+                          value={ach.description || ""}
+                          onChange={(e) => handleUpdate(ach.id, "description", e.target.value)}
+                          rows={4}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow resize-y"
+                          placeholder="Describe your achievement..."
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground">Date Achieved</label>
-                  <input
-                    type="date"
-                    value={ach.achievedAt ? new Date(ach.achievedAt).toISOString().split('T')[0] : ""}
-                    onChange={(e) => handleUpdate(ach.id, "achievedAt", e.target.value ? new Date(e.target.value).toISOString() : null)}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
-                  />
-                </div>
-                
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-medium text-foreground">Description</label>
-                  <textarea
-                    value={ach.description || ""}
-                    onChange={(e) => handleUpdate(ach.id, "description", e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow resize-y"
-                    placeholder="Describe the achievement..."
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+              )}
+            </SortableItem>
+          );
+        })}
+      </SortableList>
 
       <button
         onClick={handleAdd}

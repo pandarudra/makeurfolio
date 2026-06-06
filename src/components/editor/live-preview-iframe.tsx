@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { useEditor } from "./editor-context";
 import { Loader2 } from "lucide-react";
+import { getPortfolioUrl } from "@/src/lib/portfolio-url";
 
 export function LivePreviewIframe({ slug }: { slug: string }) {
   const { portfolio } = useEditor();
@@ -26,7 +27,7 @@ export function LivePreviewIframe({ slug }: { slug: string }) {
       </div>
       <iframe
         ref={iframeRef}
-        src={`/portfolio/${slug}?mode=edit`}
+        src={`${getPortfolioUrl(slug)}?mode=edit`}
         className="w-full h-full border-none z-10 relative bg-white"
         title="Live Preview"
       />

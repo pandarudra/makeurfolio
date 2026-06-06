@@ -1,22 +1,8 @@
-/**
- * Founder OS Theme
- *
- * A modern founder / indie hacker / startup operator portfolio focused on
- * products, impact, and credibility.
- *
- * Content Flow: Hero (w/ Stats) → Featured Projects → About → Experience →
- *               Skills → Education → Certifications → Achievements → Footer
- *
- * PURE PRESENTATION COMPONENT. No data fetching.
- */
-
 "use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, MapPin, Mail, FileText, Code2 as GithubIcon, ChevronDown, ChevronUp, Briefcase, Code2, Medal, Layers } from "lucide-react";
-import { EditableField } from "@/src/components/editor/editable-field";
-import { useLiveSync } from "@/src/hooks/use-live-sync";
 import type { PortfolioThemeProps } from "../shared/types";
 import {
   groupSkillsByCategory,
@@ -25,8 +11,7 @@ import {
   getPrimarySocials,
 } from "../shared/utils";
 
-export default function FounderOSTheme({ portfolio: initialPortfolio, isEditMode = false }: PortfolioThemeProps) {
-  const portfolio = useLiveSync(initialPortfolio, isEditMode);
+export default function FounderOSTheme({ portfolio }: PortfolioThemeProps) {
   const { featured, regular } = splitProjects(portfolio.projects);
   const skillsByCategory = groupSkillsByCategory(portfolio.skills);
   
@@ -60,31 +45,31 @@ export default function FounderOSTheme({ portfolio: initialPortfolio, isEditMode
           <div className="flex-1 space-y-8">
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-                <EditableField fieldKey="fullName" value={portfolio.fullName || portfolio.name} isEditMode={isEditMode} />
+                {portfolio.fullName || portfolio.name}
               </h1>
               {portfolio.headline && (
-                <div className="text-xl md:text-2xl text-secondary font-medium tracking-tight">
-                  <EditableField fieldKey="headline" value={portfolio.headline} isEditMode={isEditMode} />
-                </div>
+                <p className="text-xl md:text-2xl text-secondary font-medium tracking-tight">
+                  {portfolio.headline}
+                </p>
               )}
             </div>
 
             {(portfolio.summary || portfolio.bio) && (
-              <div className="text-base md:text-lg text-secondary leading-relaxed max-w-2xl">
-                <EditableField fieldKey="summary" value={portfolio.summary || portfolio.bio || ""} isEditMode={isEditMode} />
-              </div>
+              <p className="text-base md:text-lg text-secondary leading-relaxed max-w-2xl">
+                {portfolio.summary || portfolio.bio}
+              </p>
             )}
 
             {/* Socials & Contact */}
             <div className="flex flex-wrap items-center gap-4 pt-4">
               {portfolio.location && (
                 <span className="flex items-center gap-2 text-sm font-medium text-secondary bg-input-bg px-3 py-1.5 rounded-full border border-border">
-                  <MapPin className="w-4 h-4" /> <EditableField fieldKey="location" value={portfolio.location} isEditMode={isEditMode} />
+                  <MapPin className="w-4 h-4" /> {portfolio.location}
                 </span>
               )}
               {portfolio.email && (
                 <a href={`mailto:${portfolio.email}`} className="flex items-center gap-2 text-sm font-medium text-secondary bg-input-bg px-3 py-1.5 rounded-full border border-border hover:border-foreground hover:text-foreground transition-colors">
-                  <Mail className="w-4 h-4" /> <EditableField fieldKey="email" value={portfolio.email} isEditMode={isEditMode} />
+                  <Mail className="w-4 h-4" /> {portfolio.email}
                 </a>
               )}
               {portfolio.showResume && portfolio.resumeUrl && (
@@ -158,7 +143,7 @@ export default function FounderOSTheme({ portfolio: initialPortfolio, isEditMode
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
                         <h3 className="text-2xl font-bold tracking-tight text-foreground group-hover:text-foreground transition-colors">
-                          <EditableField fieldKey={`projects.${project._originalIndex}.title`} value={project.title} isEditMode={isEditMode} />
+                          {project.title}
                         </h3>
                         {project.featured && (
                           <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-background bg-foreground rounded-full">
@@ -181,9 +166,9 @@ export default function FounderOSTheme({ portfolio: initialPortfolio, isEditMode
                     </div>
                   </div>
                   
-                  <div className="text-secondary leading-relaxed mb-8 flex-1">
-                    <EditableField fieldKey={`projects.${project._originalIndex}.description`} value={project.description || project.aiSummary || ""} isEditMode={isEditMode} />
-                  </div>
+                  <p className="text-secondary leading-relaxed mb-8 flex-1">
+                    {project.description || project.aiSummary}
+                  </p>
                   
                   {Array.isArray(project.techStack) && project.techStack.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-auto pt-6 border-t border-border">
@@ -221,22 +206,18 @@ export default function FounderOSTheme({ portfolio: initialPortfolio, isEditMode
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12 md:gap-y-16">
-              {portfolio.experiences.map((exp, idx) => (
+              {portfolio.experiences.map((exp) => (
                 <div key={exp.id} className="relative flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4 border-b border-border pb-3">
-                    <h3 className="text-lg font-bold text-foreground">
-                      <EditableField fieldKey={`experiences.${idx}.role`} value={exp.role} isEditMode={isEditMode} />
-                    </h3>
+                    <h3 className="text-lg font-bold text-foreground">{exp.role}</h3>
                     <span className="text-sm font-medium text-secondary font-mono shrink-0">
                       {formatDateRange(exp.startDate, exp.endDate, exp.currentlyWorking)}
                     </span>
                   </div>
-                  <div className="text-base font-semibold text-foreground/80">
-                    <EditableField fieldKey={`experiences.${idx}.company`} value={exp.company} isEditMode={isEditMode} />
-                  </div>
+                  <div className="text-base font-semibold text-foreground/80">{exp.company}</div>
                   {exp.description && (
                     <div className="text-sm text-secondary leading-relaxed whitespace-pre-wrap mt-1">
-                      <EditableField fieldKey={`experiences.${idx}.description`} value={exp.description} isEditMode={isEditMode} />
+                      {exp.description}
                     </div>
                   )}
                 </div>
@@ -263,7 +244,7 @@ export default function FounderOSTheme({ portfolio: initialPortfolio, isEditMode
                   <div className="flex flex-wrap gap-2">
                     {skills.map((skill) => (
                       <span key={skill.id} className="text-[13px] font-medium text-secondary bg-background border border-border px-3 py-1.5 rounded-lg shadow-sm">
-                        <EditableField fieldKey={`skills.${skill._originalIndex}.name`} value={skill.name} isEditMode={isEditMode} />
+                        {skill.name}
                       </span>
                     ))}
                   </div>
@@ -284,19 +265,15 @@ export default function FounderOSTheme({ portfolio: initialPortfolio, isEditMode
               <div className="space-y-8">
                 <h2 className="text-xl font-bold tracking-tight text-foreground">Education</h2>
                 <div className="space-y-6">
-                  {portfolio.educations.map((edu, idx) => (
+                  {portfolio.educations.map((edu) => (
                     <div key={edu.id} className="bg-card-bg border border-border rounded-2xl p-6">
                       <div className="flex justify-between items-start gap-4 mb-2">
-                        <h3 className="font-bold text-foreground text-lg leading-snug">
-                          <EditableField fieldKey={`educations.${idx}.institution`} value={edu.institution} isEditMode={isEditMode} />
-                        </h3>
+                        <h3 className="font-bold text-foreground text-lg leading-snug">{edu.institution}</h3>
                         <span className="text-xs font-mono font-medium text-secondary bg-input-bg px-2 py-1 rounded-md shrink-0">
                           {formatDateRange(edu.startDate, edu.endDate)}
                         </span>
                       </div>
-                      <div className="text-secondary font-medium">
-                        <EditableField fieldKey={`educations.${idx}.degree`} value={edu.degree || ""} isEditMode={isEditMode} /> in <EditableField fieldKey={`educations.${idx}.fieldOfStudy`} value={edu.fieldOfStudy || ""} isEditMode={isEditMode} />
-                      </div>
+                      <p className="text-secondary font-medium">{edu.degree} in {edu.fieldOfStudy}</p>
                     </div>
                   ))}
                 </div>
