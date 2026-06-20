@@ -81,6 +81,10 @@ export function EditorContent() {
         const element = document.getElementById(`section-${section}`);
         if (element) {
           const rect = element.getBoundingClientRect();
+          // Adjust offset as needed based on container position
+          if (rect.top >= 0 && rect.top <= 300) {
+            setActiveSection(section);
+            break;
           // Calculate distance from the top of the scrollable container
           const relativeTop = rect.top - containerRect.top;
           
