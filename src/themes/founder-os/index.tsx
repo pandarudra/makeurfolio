@@ -1,15 +1,3 @@
-/**
- * Founder OS Theme
- *
- * A modern founder / indie hacker / startup operator portfolio focused on
- * products, impact, and credibility.
- *
- * Content Flow: Hero (w/ Stats) → Featured Projects → About → Experience →
- *               Skills → Education → Certifications → Achievements → Footer
- *
- * PURE PRESENTATION COMPONENT. No data fetching.
- */
-
 "use client";
 
 import React, { useState } from "react";

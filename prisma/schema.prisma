@@ -262,6 +262,8 @@ model Skill {
 
   sources DataSource[]
 
+  sortOrder Int @default(0)
+
   createdAt DateTime @default(now())
 
   @@unique([portfolioId, name])
@@ -295,6 +297,8 @@ model Project {
   aiSummary String? @db.Text
 
   githubMetadata GithubProjectMetadata?
+
+  sortOrder Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -341,6 +345,8 @@ model Certification {
 
   credentialUrl String?
 
+  sortOrder Int @default(0)
+
   createdAt DateTime @default(now())
 
   @@map("certifications")
@@ -357,6 +363,8 @@ model Achievement {
   description String? @db.Text
 
   achievedAt DateTime?
+
+  sortOrder Int @default(0)
 
   createdAt DateTime @default(now())
 

@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import { useEditor } from "./editor-context";
 import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import { EditorSwitch } from "./editor-switch";
+import { SortableList } from "./sortable-list";
+import { SortableItem } from "./sortable-item";
+import { CSS } from "@dnd-kit/utilities";
 
 export function EducationSection() {
   const { portfolio, updateField } = useEditor();
@@ -67,94 +70,115 @@ export function EducationSection() {
           />
         </div>
       </div>
-      {educations.map((edu: any) => {
-        const isEditing = editingId === edu.id;
-        
-        return (
-          <div key={edu.id} className="bg-input-bg border border-border/40 rounded-xl overflow-hidden transition-all">
-            <div 
-              className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-border/20 transition-colors"
-              onClick={() => toggleEdit(edu.id)}
-            >
-              <div className="flex items-center gap-4">
-                <GripVertical className="w-5 h-5 text-secondary/40 cursor-grab active:cursor-grabbing" />
-                <div>
-                  <h3 className="font-medium text-foreground">{edu.degree || "Degree"}</h3>
-                  <p className="text-sm text-secondary">{edu.institution || "Institution Name"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleDelete(edu.id); }}
-                  className="p-1.5 text-secondary/50 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+      <SortableList 
+        items={educations} 
+        onDragEnd={(newItems) => updateField("educations", newItems)}
+      >
+        {educations.map((edu: any) => {
+          const isEditing = editingId === edu.id;
+          
+          return (
+            <SortableItem key={edu.id} id={edu.id}>
+              {({ attributes, listeners, setNodeRef, transform, transition, isDragging }) => (
+                <div 
+                  ref={setNodeRef}
+                  style={{ 
+                    transform: CSS.Translate.toString(transform), 
+                    transition,
+                    zIndex: isDragging ? 50 : 1,
+                  }}
+                  className={`bg-input-bg border rounded-xl overflow-hidden transition-all ${
+                    isDragging ? 'opacity-50 border-foreground/50 shadow-lg' : 'border-border/40'
+                  }`}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                <div className="text-secondary/50 p-1.5">
-                  {isEditing ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </div>
-              </div>
-            </div>
+                  <div 
+                    className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-border/20 transition-colors"
+                    onClick={() => toggleEdit(edu.id)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div {...attributes} {...listeners} onClick={(e) => e.stopPropagation()} className="p-1 -ml-1 text-secondary/40 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors">
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-foreground">{edu.degree || "Degree"}</h3>
+                        <p className="text-sm text-secondary">{edu.institution || "Institution Name"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(edu.id); }}
+                        className="p-1.5 text-secondary/50 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="text-secondary/50 p-1.5">
+                        {isEditing ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                      </div>
+                    </div>
+                  </div>
 
-            {isEditing && (
-              <div className="px-6 py-5 border-t border-border/40 bg-background/50 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground">Degree / Certificate</label>
-                  <input
-                    type="text"
-                    value={edu.degree || ""}
-                    onChange={(e) => handleUpdate(edu.id, "degree", e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
-                    placeholder="e.g. Bachelor of Science"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground">Institution</label>
-                  <input
-                    type="text"
-                    value={edu.institution || ""}
-                    onChange={(e) => handleUpdate(edu.id, "institution", e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
-                    placeholder="e.g. Stanford University"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground">Start Date</label>
-                  <input
-                    type="date"
-                    value={edu.startDate ? new Date(edu.startDate).toISOString().split('T')[0] : ""}
-                    onChange={(e) => handleUpdate(edu.id, "startDate", e.target.value ? new Date(e.target.value).toISOString() : null)}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground flex items-center justify-between">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={edu.endDate ? new Date(edu.endDate).toISOString().split('T')[0] : ""}
-                    onChange={(e) => handleUpdate(edu.id, "endDate", e.target.value ? new Date(e.target.value).toISOString() : null)}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
+                  {isEditing && (
+                    <div className="px-6 py-5 border-t border-border/40 bg-background/50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-foreground">Degree / Certificate</label>
+                        <input
+                          type="text"
+                          value={edu.degree || ""}
+                          onChange={(e) => handleUpdate(edu.id, "degree", e.target.value)}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
+                          placeholder="e.g. Bachelor of Science"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-foreground">Institution</label>
+                        <input
+                          type="text"
+                          value={edu.institution || ""}
+                          onChange={(e) => handleUpdate(edu.id, "institution", e.target.value)}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
+                          placeholder="e.g. Stanford University"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-foreground">Start Date</label>
+                        <input
+                          type="date"
+                          value={edu.startDate ? new Date(edu.startDate).toISOString().split('T')[0] : ""}
+                          onChange={(e) => handleUpdate(edu.id, "startDate", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-foreground flex items-center justify-between">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={edu.endDate ? new Date(edu.endDate).toISOString().split('T')[0] : ""}
+                          onChange={(e) => handleUpdate(edu.id, "endDate", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-medium text-foreground">Description</label>
-                  <textarea
-                    value={edu.description || ""}
-                    onChange={(e) => handleUpdate(edu.id, "description", e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow resize-y"
-                    placeholder="Describe your studies, activities, or societies..."
-                  />
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-medium text-foreground">Description</label>
+                        <textarea
+                          value={edu.description || ""}
+                          onChange={(e) => handleUpdate(edu.id, "description", e.target.value)}
+                          rows={4}
+                          className="w-full px-3 py-2 bg-background border border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/50 transition-shadow resize-y"
+                          placeholder="Describe your studies, activities, or societies..."
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+              )}
+            </SortableItem>
+          );
+        })}
+      </SortableList>
 
       <button
         onClick={handleAdd}

@@ -2,7 +2,10 @@
 
 import React, { useState } from "react";
 import { useEditor } from "./editor-context";
-import { X, Plus } from "lucide-react";
+import { X, Plus, GripVertical } from "lucide-react";
+import { SortableList } from "./sortable-list";
+import { SortableItem } from "./sortable-item";
+import { CSS } from "@dnd-kit/utilities";
 
 export function SkillsSection() {
   const { portfolio, updateField } = useEditor();
@@ -24,7 +27,7 @@ export function SkillsSection() {
 
     const updatedSkills = [
       ...skills, 
-      { name: newSkill.trim(), category: "OTHER" } // Default category
+      { id: `skill-${Date.now()}`, name: newSkill.trim(), category: "OTHER", sortOrder: skills.length } // Default category
     ];
     
     updateField("skills", updatedSkills);
@@ -65,25 +68,49 @@ export function SkillsSection() {
           </form>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {skills.map((skill: any, idx: number) => (
-            <div 
-              key={idx} 
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-background border border-border/60 rounded-full text-sm font-medium text-foreground group"
-            >
-              {skill.name}
-              <button
-                onClick={() => handleRemoveSkill(skill.name)}
-                className="text-secondary/50 hover:text-red-500 transition-colors rounded-full p-0.5"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+        <SortableList 
+          horizontal={true}
+          items={skills.map((s: any) => ({ ...s, id: s.id || s.name }))}
+          onDragEnd={(newItems) => {
+            const updatedWithOrder = newItems.map((item, index) => ({...item, sortOrder: index}));
+            updateField("skills", updatedWithOrder);
+          }}
+        >
+          {skills.map((skill: any, idx: number) => {
+            const itemId = skill.id || skill.name;
+            return (
+              <SortableItem key={itemId} id={itemId}>
+                {({ attributes, listeners, setNodeRef, transform, transition, isDragging }) => (
+                  <div 
+                    ref={setNodeRef}
+                    style={{ 
+                      transform: CSS.Translate.toString(transform), 
+                      transition,
+                      zIndex: isDragging ? 50 : 1,
+                    }}
+                    className={`flex items-center gap-1.5 pl-1.5 pr-3 py-1.5 bg-background border rounded-full text-sm font-medium text-foreground group transition-all ${
+                      isDragging ? 'opacity-50 border-foreground/50 shadow-md' : 'border-border/60 hover:border-border'
+                    }`}
+                  >
+                    <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-secondary/40 hover:text-foreground">
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </div>
+                    {skill.name}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRemoveSkill(skill.name); }}
+                      className="text-secondary/50 hover:text-red-500 transition-colors rounded-full p-0.5 ml-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </SortableItem>
+            );
+          })}
           {skills.length === 0 && (
             <p className="text-sm text-secondary/60 italic">No skills added yet.</p>
           )}
-        </div>
+        </SortableList>
       </div>
     </div>
     </div>

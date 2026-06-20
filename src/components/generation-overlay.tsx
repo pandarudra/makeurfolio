@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Check, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { clearActiveGenerationId, getActiveGenerationMetadata, clearActiveGenerationMetadata } from "@/src/lib/storage";
+import { getPortfolioUrl } from "@/src/lib/portfolio-url";
 
 interface GenerationOverlayProps {
   generationId: string | null;
@@ -185,7 +186,11 @@ export function GenerationOverlay({ generationId, onClose }: GenerationOverlayPr
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => window.open(`/portfolio/${portfolioSlug}`, "_blank", "noopener,noreferrer")}
+                onClick={() => {
+                  if (portfolioSlug) {
+                    window.open(getPortfolioUrl(portfolioSlug), "_blank", "noopener,noreferrer");
+                  }
+                }}
                 className="flex items-center justify-center gap-2 py-3 px-6 bg-foreground text-background hover:bg-foreground/90 rounded-xl text-[14px] font-medium transition-all active:scale-[0.98] shadow-sm"
               >
                 View Portfolio

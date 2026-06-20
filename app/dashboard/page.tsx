@@ -34,6 +34,7 @@ import {
   setActiveGenerationMetadata, 
   clearActiveGenerationMetadata 
 } from "@/src/lib/storage";
+import { getPortfolioUrl } from "@/src/lib/portfolio-url";
 
 // Modals for Create Flow
 import { AuthModal } from "@/src/components/auth-modal";
@@ -154,7 +155,7 @@ export default function DashboardPage() {
   };
 
   const handleCopyLink = async (slug: string) => {
-    const link = `https://${slug}.makeurfolio.dev`;
+    const link = getPortfolioUrl(slug);
     try {
       await navigator.clipboard.writeText(link);
       setCopiedSlug(slug);
@@ -512,9 +513,10 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-secondary/80 bg-input-bg/50 px-2 py-1 rounded border border-border/40 select-all truncate max-w-full">
+                    {/* Slug / Domain Tag */}
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-secondary mt-1 bg-input-bg/50 self-start px-2 py-0.5 rounded-md border border-border/40">
                       <Globe className="w-3 h-3 text-secondary/60 flex-shrink-0" />
-                      <span>{p.slug}.makeurfolio.dev</span>
+                      <span>{new URL(getPortfolioUrl(p.slug)).host}</span>
                     </div>
                   </div>
 
@@ -541,7 +543,7 @@ export default function DashboardPage() {
                     </Link>
                     
                     <Link
-                      href={`/portfolio/${p.slug}`}
+                      href={getPortfolioUrl(p.slug)}
                       className="flex items-center justify-center gap-1.5 py-1.5 bg-input-bg text-foreground hover:bg-border/60 rounded-lg text-xs font-medium transition-colors"
                     >
                       View

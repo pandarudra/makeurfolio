@@ -529,3 +529,22 @@ See `CONTRIBUTING.md` for full details.
 * **Editor Integration**: Users manage an unlimited array of social links in the editor with drag-and-drop sorting and visibility toggling.
 * **Resume URL**: Added explicit `resumeUrl` field combined with a `showResume` toggle to seamlessly display a direct PDF link alongside social badges on the public portfolio.
 
+## Subdomain URL Architecture
+
+makeurfolio employs a subdomain architecture for public portfolios: `https://[slug].makeurfolio.com`.
+
+### 1. Middleware Rewrite Flow
+* User navigates to `utkal-kumar-das.makeurfolio.com`
+* `middleware.ts` intercepts the request and extracts the subdomain.
+* It internally rewrites the request to `/portfolio/utkal-kumar-das`.
+* The `app/portfolio/[slug]/page.tsx` route handles rendering, entirely unaware that it was accessed via a subdomain.
+
+### 2. The `getPortfolioUrl` Helper
+* **Location**: `src/lib/portfolio-url.ts`
+* **Purpose**: Centralizes the generation of absolute portfolio URLs based on the `NEXT_PUBLIC_ROOT_DOMAIN` environment variable.
+* **Rule**: ALL user-facing portfolio links across the application (Dashboard cards, Copy Link buttons, Editor previews, Success Modals) MUST use `getPortfolioUrl(slug)`.
+* **Hardcoding Ban**: Never hardcode `/portfolio/[slug]` for user-facing navigation. It breaks the illusion of custom domains/subdomains and exposes the internal routing structure.
+
+### 3. Local Development Support
+* For local testing of subdomains, set `NEXT_PUBLIC_ROOT_DOMAIN="lvh.me:3000"` in `.env`.
+* `getPortfolioUrl` automatically falls back to `http://` for `lvh.me` and `localhost`, ensuring seamless local routing.
